@@ -11,12 +11,15 @@ This authentication module is built on an Axum web server with Tera templates, u
 
 To utilize the authentication features, use the `Extension` provided by the Axum framework to extract the `AuthState`.
 
+```rust
 Extension(current_user): Extension<AuthState>
+```
 
 You can then call the logged_in() function to check if a user is currently logged in:
-s
-current_user.logged_in()
 
+```
+current_user.logged_in()
+```
 
 ## References and Test Environment
 Please ensure that you have set up the Shuttle environment. For instructions, refer to the following link:
