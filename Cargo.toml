@@ -1,21 +1,23 @@
 [package]
-name = "axum-postgres-authentication"
+name = "my-authentication"
 version = "0.1.0"
 edition = "2021"
-publish = false
 
 [dependencies]
 axum = { version = "0.6.18", features = ["multipart"] }
 cookie = "0.18.0"
 http = "0.2.9"
-shuttle-axum = "0.32.0"
-shuttle-runtime = "0.32.0"
+shuttle-axum = "0.35.0"
+shuttle-runtime = "0.35.0"
 sqlx = { version = "0.7.1", features = ["runtime-tokio-native-tls", "postgres"] }
 tokio = "1.28.2"
 pbkdf2 = { version = "0.12", features = ["simple"] }
 rand_core = { version = "0.6", features = ["std"] }
 rand_chacha = "0.3.1"
 http-body = "0.4.5"
-shuttle-service = "0.32.0"
+shuttle-service = "0.35.0"
 tera = "1.19.0"
-shuttle-shared-db = { version = "0.32.0", features = ["postgres-rustls", "sqlx", "postgres"] }
+shuttle-shared-db = { version = "0.35.0", features = ["postgres-rustls", "sqlx", "postgres"] }
+lettre = "0.11.2"
+chrono = "0.4.31"
+urlencoding = "2.1.3"

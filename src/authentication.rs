@@ -11,6 +11,11 @@ use crate::{
     Database, Random, USER_COOKIE_NAME,
 };
 
+use lettre::transport::smtp::authentication::Credentials;
+use lettre::{Message, SmtpTransport, Transport};
+use chrono::{Duration, Utc};
+use urlencoding::encode;
+
 #[derive(Clone, Copy)]
 pub(crate) struct SessionToken(u128);
 
@@ -120,6 +125,7 @@ pub(crate) async fn signup(
     random: Random,
     username: &str,
     password: &str,
+    email: &str,
 ) -> Result<SessionToken, SignupError> {
     fn valid_username(username: &str) -> bool {
         (1..20).contains(&username.len())
@@ -133,7 +139,7 @@ pub(crate) async fn signup(
     }
 
     const INSERT_QUERY: &str =
-        "INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id;";
+        "INSERT INTO users (username, password, email) VALUES ($1, $2, $3) RETURNING id;";
 
     let salt = SaltString::generate(&mut OsRng);
 
@@ -149,6 +155,7 @@ pub(crate) async fn signup(
     let fetch_one = sqlx::query_as(INSERT_QUERY)
         .bind(username)
         .bind(hashed_password)
+        .bind(email)
         .fetch_one(database)
         .await;
 
@@ -160,11 +167,13 @@ pub(crate) async fn signup(
             return Err(SignupError::UsernameExists);
         }
         Err(_err) => {
+            println!("Error: {:?}", _err);
             return Err(SignupError::InternalError);
         }
     };
 
     Ok(new_session(database, random, user_id).await)
+    
 }
 
 pub(crate) async fn login(
@@ -208,4 +217,110 @@ pub(crate) async fn delete_user(auth_state: AuthState) {
         .execute(&auth_state.2)
         .await
         .unwrap();
+}
+
+pub(crate) async fn send_email(
+    database: &Database,
+    username: &str,
+    reset_token: &u64
+) -> Result<(), LoginError>{
+    
+    const FORGOT_PASSWORD_QUERY: &str = "SELECT id, email FROM users WHERE users.username = $1;";
+
+    let row: Option<(i32, String)> = sqlx::query_as(FORGOT_PASSWORD_QUERY)
+        .bind(username)
+        .fetch_optional(database)
+        .await
+        .unwrap();
+
+    let (_user_id, email) = if let Some(row) = row {
+        row
+    } else {
+        return Err(LoginError::UserDoesNotExist);
+    };
+
+    let smtp_key: &str = "xsmtpsib-9d8ddef88e873542e39024400bc521ce08ee8e6b2973217ca225fb8b8247de03-ZNSnbB5smgvXy6Yc";
+    let from_email: &str = "testgdscmail@gmail.com";
+    let to_email: &str = &email;
+    let host: &str = "smtp-relay.sendinblue.com";
+    let expiration_time = Utc::now() + Duration::minutes(5);
+    let reset_link = format!("https://my-authentication.shuttleapp.rs/login/forgotpassword/{}/{}/{}", username, reset_token, encode(&expiration_time.to_rfc3339()));
+
+
+    let email: Message = Message::builder()
+        .from(from_email.parse().unwrap())
+        .to(to_email.parse().unwrap())
+        .subject("Reset your password")
+        .body(format!(
+            "Please click the following link to reset your password:\nLink:{}\nThe link will expired in 5 minutes.",
+            reset_link))
+        .unwrap();
+
+    let creds: Credentials = Credentials::new(from_email.to_string(), smtp_key.to_string());
+
+    // Open a remote connection to gmail
+    let mailer: SmtpTransport = SmtpTransport::relay(&host)
+        .unwrap()
+        .credentials(creds)
+        .build();
+
+    // Send the email
+    if let Err(e) = mailer.send(&email) {
+        panic!("Could not send email: {:?}", e);
+    }
+
+    Ok(()) 
+}
+
+pub(crate) async fn change_password(
+    database: &Database,
+    username: &str,
+    new_password: &str,
+) -> Result<(), SignupError> {
+    const SELECT_QUERY: &str = "SELECT id FROM users WHERE username = $1;";
+    const UPDATE_QUERY: &str = "UPDATE users SET password = $1 WHERE id = $2 RETURNING id;";
+
+    // Fetch user ID based on the username
+    let user_id: i32 = match sqlx::query_scalar(SELECT_QUERY)
+        .bind(username)
+        .fetch_optional(database)
+        .await
+    {
+        Ok(Some(id)) => id,
+        Ok(None) => return Err(SignupError::InvalidUsername),
+        Err(err) => {
+            println!("Error fetching user ID: {:?}", err);
+            return Err(SignupError::InternalError);
+        }
+    };
+
+    // Hash the new password
+    let salt = SaltString::generate(&mut OsRng);
+    let password_hash = Pbkdf2.hash_password(new_password.as_bytes(), &salt);
+    let hashed_password = if let Ok(password) = password_hash {
+        password.to_string()
+    } else {
+        return Err(SignupError::InvalidPassword);
+    };
+
+    // Update the user's password
+    let updated_user_id: i32 = match sqlx::query_scalar(UPDATE_QUERY)
+        .bind(hashed_password)
+        .bind(user_id)
+        .fetch_one(database)
+        .await
+    {
+        Ok(id) => id,
+        Err(_err) => {
+            println!("Error updating password: {:?}", _err);
+            return Err(SignupError::InternalError);
+        }
+    };
+
+    // Check if the user was actually updated
+    if updated_user_id != user_id {
+        return Err(SignupError::InternalError);
+    }
+
+    Ok(())
 }

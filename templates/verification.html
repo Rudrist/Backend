@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Verification{% endblock title %}
+{% block content %}
+<form action="/login/forgotpassword/verification" enctype="multipart/form-data" method="post">
+    <p>Please check your email (including spam folder) for the verification message.</p>
+    <p>If you haven't received the verification email, please click the button below.</p>
+    <label for="username">Username</label>
+    <input type="text" name="username" autocomplete="username" id="username" required>
+    <input type="submit" value="Resend email">
+    <a href="/login">Login</a>
+</form>
+{% endblock content %}
