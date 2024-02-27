@@ -1,7 +1,7 @@
 [default]
 secret_key = "0NglFu7qyn3V2qbqWv2CmtcezOLzNysWgmKW7H8wJPYhAwpqT3SumYJ6HmHCbIfbtBN4tS44P16/gxuw2qP0hA=="
 address = "0.0.0.0"
-
+port = 8000
 
 [default.databases.postgres_db]
 url = "postgresql://rudrist_admin:123456@localhost:5432/rudrist_backend"
