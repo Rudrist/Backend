@@ -12,6 +12,7 @@ type Random = Arc<Mutex<rand_chacha::ChaCha8Rng>>;
 
 #[derive(Clone, Copy)]
 pub(crate) struct SessionToken(u128);
+
 impl SessionToken {
     pub fn generate_new(random: Random) -> Self {
         let mut u128_pool = [0u8; 16];

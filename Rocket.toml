@@ -4,4 +4,4 @@ address = "0.0.0.0"
 
 
 [default.databases.postgres_db]
-url = "postgresql://rudrist_admin:123456@localhost:5432/rudristdb"
+url = "postgresql://rudrist_admin:123456@localhost:5432/rudrist_backend"

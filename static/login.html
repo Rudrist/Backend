@@ -10,7 +10,7 @@
     <h2>Login</h2>
     
     <!-- Login Form -->
-    <form action="/login" method="post">
+    <form action="/api/auth/login" method="post">
         <label for="user_name">Username:</label>
         <input type="text" id="user_name" name="user_name" required>
         <br>
@@ -18,15 +18,5 @@
         <input type="password" id="user_password" name="user_password" required>
         <br>
         <button type="submit">Login</button>
-    </form>
-
-    <!-- Forget Password Section -->
-    <h2>Forget Password</h2>
-    <form action="/login/forget_password" method="post">
-        <label for="forget_username">Username:</label>
-        <input type="text" id="forset_user_name" name="user_name" required>
-        <br>
-        <button type="submit">Send Reset Email</button>
-    </form>
 </body>
 </html>

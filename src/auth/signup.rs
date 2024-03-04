@@ -21,11 +21,11 @@ pub(crate) struct SignupInfo<'r> {
 // TODO, signup is available only when not logged in
 // if signup sucessfully, redirect to login page. (It won't log in automatically)
 // Otherwise, return Status::BadRequest and a string indicating the error. (It is not fancy at all :< )
-#[post("/signup", data = "<signup_info>")]
+#[post("/api/auth/register", data = "<signup_info>")]
 pub(crate) async fn signup(
     signup_info: Form<Strict<SignupInfo<'_>>>, 
     mut accounts_db_coon: Connection<database::AccountsDb>
-) -> Result<Redirect, (Status, &'static str)> {
+) -> Result<Status, (Status, &'static str)> {
 
     // confirm the password
     if signup_info.user_password != signup_info.confirm_password {
@@ -53,10 +53,10 @@ pub(crate) async fn signup(
     // if the user data is inserted successfully, redirect to login page
     match signup_user_id {
         Ok(_) => {
-            Ok(Redirect::to(uri!("/login")))
+            return Ok(Status::Ok);
         }
         Err(_) => {
-            Err((Status::BadRequest, "The input is invalid. Username/email has been used probably."))
+            return Err((Status::BadRequest, "Account already exist."));
         }
     }
 }
