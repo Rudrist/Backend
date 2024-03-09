@@ -42,11 +42,11 @@ pub(crate) async fn signup(
     };
 
     // inser the signup user data into the database
-    let signup_user_id = rocket_db_pools::diesel::insert_into(schema::users::table)
+    let signup_user_id = rocket_db_pools::diesel::insert_into(schema::accounts::table)
         .values((
-            schema::users::username.eq(signup_info.user_name.to_string()),
-            schema::users::email.eq(signup_info.user_email.to_string()),
-            schema::users::password.eq(&hashed_password),
+            schema::accounts::username.eq(signup_info.user_name.to_string()),
+            schema::accounts::email.eq(signup_info.user_email.to_string()),
+            schema::accounts::password.eq(&hashed_password),
         ))
         .execute(&mut accounts_db_coon).await;
     

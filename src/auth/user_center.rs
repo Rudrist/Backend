@@ -9,7 +9,7 @@ use pbkdf2::password_hash::{PasswordHash, PasswordHasher};
 use pbkdf2::{password_hash::PasswordVerifier, Pbkdf2,};
 
 use crate::db_lib::{database, USER_COOKIE_NAME};
-use crate::db_lib::schema::{sessions, users};
+use crate::db_lib::schema::{sessions, accounts};
 use crate::db_lib::session::SessionToken;
 
 // return the user_id according to the session token from the client(cookie)
@@ -31,10 +31,10 @@ pub(crate) async fn get_logged_in_user_id(
     let fetch_user_id = sessions::table
         .select(sessions::user_id)
         .filter(sessions::session_token.eq(session_token.into_database_value()))
-        .first::<Option<i32>>(&mut accounts_db_coon).await;
-
+        .first::<i32>(&mut accounts_db_coon).await;
+    
     if let Ok(user_id) = fetch_user_id {
-        return user_id;
+        return Some(user_id);
     } else {
         return None;
     };
@@ -56,8 +56,8 @@ pub(crate) async fn set_new_password(
     };
     
     // update the database
-    let update_password = rocket_db_pools::diesel::update(users::table.filter(users::id.eq(user_id)))
-        .set(users::password.eq(new_hashed_password))
+    let update_password = rocket_db_pools::diesel::update(accounts::table.filter(accounts::id.eq(user_id)))
+        .set(accounts::password.eq(new_hashed_password))
         .execute(&mut accounts_db_coon).await;
 
     match update_password {
@@ -89,9 +89,9 @@ pub(crate) async fn reset_password(
     };
 
     // fetch the (hashed)user password from the database
-    let fetch_user_password = users::table
-        .select(users::password)
-        .filter(users::id.eq(user_id))
+    let fetch_user_password = accounts::table
+        .select(accounts::password)
+        .filter(accounts::id.eq(user_id))
         .first::<String>(&mut accounts_db_coon).await;
 
     let current_hashed_password = if let Ok(password) = fetch_user_password {

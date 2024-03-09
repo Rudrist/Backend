@@ -17,7 +17,7 @@ use lettre::{Message, SmtpTransport, Transport};
 use chrono::{Duration, Utc};
 use urlencoding::encode;
 
-use crate::db_lib::schema::users;
+use crate::db_lib::schema::accounts;
 use crate::db_lib::session::new_session;
 use crate::auth::user_center::get_logged_in_user_id;
 use crate::db_lib::USER_COOKIE_NAME;
@@ -40,9 +40,9 @@ pub(crate) async fn forget_password(
     }
 
     println!("{}", forget_password_info.user_name);
-    let fetch_user_email = users::table
-        .select(users::email)
-        .filter(users::username.eq(forget_password_info.user_name.to_string()))
+    let fetch_user_email = accounts::table
+        .select(accounts::email)
+        .filter(accounts::username.eq(forget_password_info.user_name.to_string()))
         .first::<String>(&mut accounts_db_coon).await;
 
     let user_email = if let Ok(user_email) = fetch_user_email {

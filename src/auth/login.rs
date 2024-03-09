@@ -17,12 +17,12 @@ use lettre::{Message, SmtpTransport, Transport};
 use chrono::{Duration, Utc};
 use urlencoding::encode;
 
-use crate::db_lib::schema::users;
+use crate::db_lib::schema::accounts;
 use crate::db_lib::session::new_session;
 use crate::auth::user_center::get_logged_in_user_id;
 use crate::db_lib::USER_COOKIE_NAME;
 use crate::db_lib::{database, RAND};
-
+use uuid::Uuid;
 
 #[derive(FromForm)]
 pub(crate) struct LoginInfo<'r> {
@@ -41,9 +41,9 @@ pub(crate) async fn login(
 ) -> Result<(Status, String), (Status, &'static str)> {
     
     // query the id and (hashed)password in the database according to the username
-    let login_result = users::table
-        .select((users::id, users::password))
-        .filter(users::username.eq(login_info.user_name.to_string()))
+    let login_result = accounts::table
+        .select((accounts::id, accounts::password))
+        .filter(accounts::username.eq(login_info.user_name.to_string()))
         .first::<(i32, String)>(&mut accounts_db_coon).await;
 
     // If query fails, return badquest
