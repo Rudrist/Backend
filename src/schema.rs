@@ -2,7 +2,7 @@
 
 diesel::table! {
     accounts (id) {
-        id -> Uuid,
+        id -> Int4,
         #[max_length = 100]
         email -> Varchar,
         #[max_length = 50]
@@ -26,7 +26,7 @@ diesel::table! {
 
 diesel::table! {
     exchange_api_keys (id) {
-        id -> Uuid,
+        id -> Int4,
         #[max_length = 255]
         api_key -> Varchar,
         #[max_length = 255]
@@ -36,12 +36,12 @@ diesel::table! {
 
 diesel::table! {
     intra_account_transfer_requests (id) {
-        id -> Uuid,
-        admin_account_id -> Uuid,
-        trader_account_id -> Uuid,
-        position_id -> Uuid,
-        from_portfolio_id -> Uuid,
-        to_portfolio_id -> Uuid,
+        id -> Int4,
+        admin_account_id -> Int4,
+        trader_account_id -> Int4,
+        position_id -> Int4,
+        from_portfolio_id -> Int4,
+        to_portfolio_id -> Int4,
         price -> Int8,
         quantity -> Int8,
         fee -> Int8,
@@ -52,12 +52,12 @@ diesel::table! {
 
 diesel::table! {
     orders (id) {
-        id -> Uuid,
+        id -> Int4,
         time_stamp -> Timestamp,
         state -> Int4,
         buyin -> Bool,
         trading_pair_id -> Int4,
-        quotation_id -> Uuid,
+        quotation_id -> Int4,
         price -> Int8,
         qty -> Int8,
     }
@@ -65,8 +65,8 @@ diesel::table! {
 
 diesel::table! {
     portfolio_balance (id) {
-        id -> Uuid,
-        portfolio_id -> Uuid,
+        id -> Int4,
+        portfolio_id -> Int4,
         quantity -> Int8,
         currency_id -> Int4,
     }
@@ -74,46 +74,46 @@ diesel::table! {
 
 diesel::table! {
     portfolios (id) {
-        id -> Uuid,
+        id -> Int4,
         time_stamp -> Timestamp,
-        trader_account_id -> Uuid,
+        trader_account_id -> Int4,
         portfolio_type -> Int4,
     }
 }
 
 diesel::table! {
     positions (id) {
-        id -> Uuid,
-        trading_pair_id -> Nullable<Int4>,
-        portfolio_id -> Nullable<Uuid>,
+        id -> Int4,
+        trading_pair_id -> Int4,
+        portfolio_id -> Int4,
     }
 }
 
 diesel::table! {
     quotations (id) {
-        id -> Uuid,
+        id -> Int4,
         time_stamp -> Timestamp,
         base_currency_id -> Int4,
-        position_id -> Nullable<Uuid>,
+        position_id -> Int4,
     }
 }
 
 diesel::table! {
     risk_management (id) {
-        id -> Uuid,
+        id -> Int4,
         #[max_length = 30]
         risk_type -> Varchar,
         valid -> Bool,
         pnl -> Int8,
         position -> Int4,
-        portfolio_id -> Uuid,
+        portfolio_id -> Int4,
     }
 }
 
 diesel::table! {
     sessions (session_token) {
         session_token -> Bytea,
-        user_id -> Uuid,
+        user_id -> Int4,
     }
 }
 
