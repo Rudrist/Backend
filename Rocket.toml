@@ -4,4 +4,4 @@ address = "0.0.0.0"
 port = 8000
 
 [default.databases.postgres_db]
-url = "postgresql://rudrist_admin:123456@localhost:5432/rudrist_backend"
+url = "postgresql://rudrist_admin:123456@localhost:5432/rudristdb"
