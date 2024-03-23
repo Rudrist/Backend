@@ -111,17 +111,19 @@ diesel::table! {
 }
 
 diesel::table! {
-    sessions (session_token) {
-        session_token -> Bytea,
-        user_id -> Int4,
-    }
-}
-
-diesel::table! {
     trading_pairs (id) {
         id -> Int4,
         base_currency_id -> Int4,
         quote_currency_id -> Int4,
+    }
+}
+
+diesel::table! {
+    users (id) {
+        id -> Int4,
+        username -> Text,
+        password -> Text,
+        email -> Text,
     }
 }
 
@@ -136,7 +138,6 @@ diesel::joinable!(quotations -> currencies (base_currency_id));
 diesel::joinable!(quotations -> positions (position_id));
 diesel::joinable!(risk_management -> portfolios (portfolio_id));
 diesel::joinable!(risk_management -> trading_pairs (position));
-diesel::joinable!(sessions -> accounts (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     accounts,
@@ -149,6 +150,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     positions,
     quotations,
     risk_management,
-    sessions,
     trading_pairs,
+    users,
 );

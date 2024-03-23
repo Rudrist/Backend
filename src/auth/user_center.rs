@@ -1,22 +1,21 @@
 use rocket::form::{Form, Strict};
 use rocket::http::{CookieJar, Status};
 use rocket::response::Redirect;
-use rocket_db_pools::{diesel, Connection};
-use rocket_db_pools::diesel::prelude::RunQueryDsl;
 use ::diesel::ExpressionMethods;
 use diesel::query_dsl::methods::{FilterDsl, SelectDsl};
 use pbkdf2::password_hash::{PasswordHash, PasswordHasher};
 use pbkdf2::{password_hash::PasswordVerifier, Pbkdf2,};
 
-use crate::db_lib::{database, USER_COOKIE_NAME};
-use crate::db_lib::schema::{sessions, accounts};
-use crate::db_lib::session::SessionToken;
+use crate::db_lib::{database::establish_connection, USER_COOKIE_NAME};
+use crate::db_lib::schema::accounts;
 
 // return the user_id according to the session token from the client(cookie)
 pub(crate) async fn get_logged_in_user_id(
     cookies: &CookieJar<'_>,
-    mut accounts_db_coon: &mut Connection<database::AccountsDb>
 ) -> Option<i32> {
+    use crate::db_lib::schema::sessions::dsl::*;
+    let connection = &mut establish_connection();
+
     // get the session token from the client(cookie)
     let fetch_cookie = cookies.get_private(USER_COOKIE_NAME)
         .and_then(|cookie| cookie.value().parse::<String>().ok());
@@ -28,10 +27,10 @@ pub(crate) async fn get_logged_in_user_id(
     };
 
     // get the user id corresponding to the session token from the database
-    let fetch_user_id = sessions::table
-        .select(sessions::user_id)
+    let fetch_user_id = sessions
         .filter(sessions::session_token.eq(session_token.into_database_value()))
-        .first::<i32>(&mut accounts_db_coon).await;
+        .select(sessions::user_id)
+        .load(&mut connection).await;
     
     if let Ok(user_id) = fetch_user_id {
         return Some(user_id);

@@ -7,7 +7,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-diesel = { version = "2", features = ["returning_clauses_for_sqlite_3_35"] }
+diesel = { version = "2", features = ["postgres", "chrono"] }
 pbkdf2 = { version = "0.12", features = ["simple"] }
 rand_core = { version = "0.6", features = ["std"] }
 rand_chacha = "0.3.1"
@@ -19,7 +19,3 @@ dotenv = "0.15.0"
 [dependencies.rocket]
 version = "0.5.0-rc.4"
 features = ["json", "secrets" ]
-
-[dependencies.rocket_db_pools]
-version = "0.1.0"
-features = ["diesel_postgres"]

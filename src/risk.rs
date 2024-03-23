@@ -9,7 +9,6 @@ use crate::db_lib::schema::{portfolios, risk_management};
 #[get("/api/risk")]
 pub(crate) async fn get_risk_status(
     mut accounts_db_coon: Connection<database::AccountsDb>,
-    mut risk_management_db_conn: Connection<database::RiskManagementDb>,
     cookies: &CookieJar<'_>,
 ) -> Result<(Status, &'static str), (Status, &'static str)> {
     // get user id
@@ -34,7 +33,7 @@ pub(crate) async fn get_risk_status(
             risk_management::portfolio_id,
         ))
         .filter(portfolios::trader_account_id.eq(user_id))
-        .load::<(String, bool, i64, i32, i32)>(&mut risk_management_db_conn);
+        .load::<(String, bool, i64, i32, i32)>(&mut accounts_db_coon);
 
     let risk_status = if let Ok(risk_status) = fetch_risk_status {
         risk_status

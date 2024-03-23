@@ -1,27 +1,17 @@
 use std::env;
-
-use diesel::query_dsl::methods::{FilterDsl, SelectDsl};
-use dotenv::dotenv;
+use diesel::prelude::*;
+use crate::db_lib::database::establish_connection;
 use rand_core::{OsRng, RngCore};
-use rocket::State;
 use rocket::form::{Form, Strict};
-use rocket::response::Redirect;
-use rocket::http::{Cookie, CookieJar, Status};
-use rocket_db_pools::Connection;
-use rocket_db_pools::diesel::prelude::RunQueryDsl;
+use rocket::http::{CookieJar, Status};
 use ::diesel::ExpressionMethods;
-use pbkdf2::password_hash::PasswordHash;
-use pbkdf2::{password_hash::PasswordVerifier, Pbkdf2,};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
 use chrono::{Duration, Utc};
 use urlencoding::encode;
 
-use crate::db_lib::schema::accounts;
-use crate::db_lib::session::new_session;
 use crate::auth::user_center::get_logged_in_user_id;
-use crate::db_lib::USER_COOKIE_NAME;
-use crate::db_lib::{database, RAND};
+use crate::db_lib::models::*;
 
 #[derive(FromForm)]
 pub(crate) struct ForgetPasswordInfo<'r> {
@@ -31,28 +21,29 @@ pub(crate) struct ForgetPasswordInfo<'r> {
 #[post("/api/auth/forget", data = "<forget_password_info>")]
 pub(crate) async fn forget_password(
     forget_password_info: Form<Strict<ForgetPasswordInfo<'_>>>,
-    mut accounts_db_coon: Connection<database::AccountsDb>, 
     cookies: &CookieJar<'_>
 ) -> Result<(Status, &'static str), (Status, &'static str)> {
-
-    if let Some(_) = get_logged_in_user_id(cookies, &mut accounts_db_coon).await {
+    use crate::db_lib::schema::accounts::dsl::*;
+    let connection = &mut establish_connection();
+    if let Some(_) = get_logged_in_user_id(cookies).await {
         return Err((Status::BadRequest, "Already Logged in."));
     }
 
     println!("{}", forget_password_info.user_name);
-    let fetch_user_email = accounts::table
-        .select(accounts::email)
-        .filter(accounts::username.eq(forget_password_info.user_name.to_string()))
-        .first::<String>(&mut accounts_db_coon).await;
+    let fetch_user_email = accounts
+        .filter(username.eq(forget_password_info.user_name.to_string()))
+        .select(username)
+        .load(connection)
+        .expect("Error loading.");
 
-    let user_email = if let Ok(user_email) = fetch_user_email {
+    let user_email = if let Ok(user_email) = fetch_user_email[0] {
         user_email
     } else {
         return Err((Status::BadRequest, "User email not found"));
     };
 
     let reset_token = OsRng.next_u64();
-    let send_email = send_reset_password_email(forget_password_info.user_name, &user_email, &reset_token).await;
+    let send_email = send_reset_password_email(forget_password_info.user_name, user_email, &reset_token).await;
 
     match send_email {
         Ok(_) => Ok((Status::Accepted, "The email is successfully sent")),

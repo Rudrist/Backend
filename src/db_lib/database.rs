@@ -1,9 +1,13 @@
-pub use rocket_db_pools::Database;
 
-#[derive(Database)]
-#[database("postgres_db")]
-pub struct AccountsDb(rocket_db_pools::diesel::PgPool);
+use diesel::pg::PgConnection;
+use diesel::prelude::*;
+use dotenv::dotenv;
+use std::env;
 
-#[derive(Database)]
-#[database("postgres_db")]
-pub struct RiskManagementDb(rocket_db_pools::diesel::PgPool);
+pub fn establish_connection() -> PgConnection {
+    dotenv().ok();
+
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    PgConnection::establish(&database_url)
+        .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
+}
