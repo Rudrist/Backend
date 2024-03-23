@@ -1,20 +1,20 @@
-#[macro_use] extern crate rocket;
+#[macro_use]
+extern crate rocket;
 
-use std::path::{Path, PathBuf};
-use rand_core::{SeedableRng, RngCore};
-use rocket::http::{CookieJar, Status};
-use rocket_db_pools::{Connection, Database};
-use rocket::fs::NamedFile;
-use rocket::response::content::RawHtml;
-use std::sync::{Arc, Mutex};
+use rand_core::{RngCore, SeedableRng};
 use rocket::fs::FileServer;
-
+use rocket::fs::NamedFile;
+use rocket::http::{CookieJar, Status};
+use rocket::response::content::RawHtml;
+use rocket_db_pools::{Connection, Database};
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 
 mod db_lib;
 use db_lib::{database, RAND};
 mod auth;
-use auth::{login, signup, user_center, forget};
-
+use auth::{forget, login, signup, user_center};
+mod risk;
 
 #[get("/")]
 fn index() -> RawHtml<&'static str> {
@@ -22,10 +22,9 @@ fn index() -> RawHtml<&'static str> {
 }
 #[get("/api/auth/register")]
 async fn signup_page(
-    mut accounts_db_coon: Connection<database::AccountsDb>, 
-    cookies: &CookieJar<'_>
+    mut accounts_db_coon: Connection<database::AccountsDb>,
+    cookies: &CookieJar<'_>,
 ) -> Result<RawHtml<&'static str>, (Status, &'static str)> {
-
     if let Some(_) = user_center::get_logged_in_user_id(cookies, &mut accounts_db_coon).await {
         return Err((Status::BadRequest, "Already logged in."));
     }
@@ -33,10 +32,9 @@ async fn signup_page(
 }
 #[get("/api/auth/login")]
 async fn login_page(
-    mut accounts_db_coon: Connection<database::AccountsDb>, 
-    cookies: &CookieJar<'_>
+    mut accounts_db_coon: Connection<database::AccountsDb>,
+    cookies: &CookieJar<'_>,
 ) -> Result<RawHtml<&'static str>, (Status, &'static str)> {
-
     if let Some(_) = user_center::get_logged_in_user_id(cookies, &mut accounts_db_coon).await {
         return Err((Status::BadRequest, "Already logged in."));
     }
@@ -45,10 +43,9 @@ async fn login_page(
 
 #[get("/user_center")]
 async fn user_center_page(
-    mut accounts_db_coon: Connection<database::AccountsDb>, 
-    cookies: &CookieJar<'_>
+    mut accounts_db_coon: Connection<database::AccountsDb>,
+    cookies: &CookieJar<'_>,
 ) -> Result<RawHtml<&'static str>, (Status, &'static str)> {
-    
     if let None = user_center::get_logged_in_user_id(cookies, &mut accounts_db_coon).await {
         return Err((Status::BadRequest, "Not yet logged in."));
     }
@@ -57,15 +54,14 @@ async fn user_center_page(
 
 #[get("/api/auth/forget")]
 async fn forget_page(
-    mut accounts_db_coon: Connection<database::AccountsDb>, 
-    cookies: &CookieJar<'_>
+    mut accounts_db_coon: Connection<database::AccountsDb>,
+    cookies: &CookieJar<'_>,
 ) -> Result<RawHtml<&'static str>, (Status, &'static str)> {
     if let Some(_) = user_center::get_logged_in_user_id(cookies, &mut accounts_db_coon).await {
         return Err((Status::BadRequest, "Already logged in."));
     }
     return Ok(RawHtml(include_str!("../static/forget.html")));
 }
-
 
 //TO DO get(reset_page)
 /*
@@ -74,7 +70,7 @@ async fn reset_page(
     username: String,
     resettoken: String,
     expiration_timestamp: String,
-    mut accounts_db_coon: Connection<database::AccountsDb>, 
+    mut accounts_db_coon: Connection<database::AccountsDb>,
     cookies: &CookieJar<'_>,
 ) -> Result<(Status, &'static str), (Status, &'static str)> {
     let expiration_time = expiration_timestamp.parse::<DateTime<Utc>>();
@@ -97,26 +93,35 @@ async fn reset_page(
 #[get("/<file..>")]
 async fn files(file: PathBuf) -> Option<NamedFile> {
     println!("{}", Path::new("./static/").join(&file).to_str().unwrap());
-    NamedFile::open(Path::new("./static/").join(file)).await.ok()
+    NamedFile::open(Path::new("./static/").join(file))
+        .await
+        .ok()
 }
-
-
 
 #[rocket::main]
 async fn main() {
-
     rocket::build()
         .attach(database::AccountsDb::init())
-        .manage(RAND {random: Arc::new(Mutex::new(rand_chacha::ChaCha8Rng::seed_from_u64(rand_core::OsRng.next_u64())))})
+        .manage(RAND {
+            random: Arc::new(Mutex::new(rand_chacha::ChaCha8Rng::seed_from_u64(
+                rand_core::OsRng.next_u64(),
+            ))),
+        })
         .mount("/", FileServer::from("static"))
         .mount("/", routes![files])
         .mount("/", routes![index])
         .mount("/", routes![signup_page, signup::signup])
         .mount("/", routes![login_page, login::login])
-        .mount("/", routes![user_center_page, user_center::reset_password, user_center::logout])
+        .mount(
+            "/",
+            routes![
+                user_center_page,
+                user_center::reset_password,
+                user_center::logout
+            ],
+        )
         .mount("/", routes![forget_page, forget::forget_password])
         .launch()
         .await
         .expect("Failed to launch rocket");
-
 }
