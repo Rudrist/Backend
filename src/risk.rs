@@ -1,17 +1,18 @@
-use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
+use rocket_db_pools::diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use rocket::http::{CookieJar, Status};
 use rocket_db_pools::Connection;
 
 use crate::auth::user_center::get_logged_in_user_id;
 use crate::db_lib::database;
 use crate::db_lib::schema::{portfolios, risk_management};
+use rocket_db_pools::diesel::prelude::*;
 
 #[get("/api/risk")]
 pub(crate) async fn get_risk_status(
     mut accounts_db_coon: Connection<database::AccountsDb>,
     mut risk_management_db_conn: Connection<database::RiskManagementDb>,
     cookies: &CookieJar<'_>,
-) -> Result<(Status, &'static str), (Status, &'static str)> {
+) -> Result<(Status, String), (Status, &'static str)> {
     // get user id
     let user_id = if let Some(user_id) = get_logged_in_user_id(cookies, &mut accounts_db_coon).await
     {
@@ -26,6 +27,7 @@ pub(crate) async fn get_risk_status(
     // fetch risk status
     let fetch_risk_status = risk_management::table
         .inner_join(portfolios::table)
+        .filter(portfolios::trader_account_id.eq(user_id))
         .select((
             risk_management::risk_type,
             risk_management::valid,
@@ -33,8 +35,7 @@ pub(crate) async fn get_risk_status(
             risk_management::position,
             risk_management::portfolio_id,
         ))
-        .filter(portfolios::trader_account_id.eq(user_id))
-        .load::<(String, bool, i64, i32, i32)>(&mut risk_management_db_conn);
+        .load::<(String, bool, i64, i32, i32)>(&mut risk_management_db_conn).await;
 
     let risk_status = if let Ok(risk_status) = fetch_risk_status {
         risk_status
