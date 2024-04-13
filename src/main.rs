@@ -102,6 +102,8 @@ async fn files(file: PathBuf) -> Option<NamedFile> {
 async fn main() {
     rocket::build()
         .attach(database::AccountsDb::init())
+        .attach(database::RiskManagementDb::init())
+        .attach(database::PortfoliosDb::init())
         .manage(RAND {
             random: Arc::new(Mutex::new(rand_chacha::ChaCha8Rng::seed_from_u64(
                 rand_core::OsRng.next_u64(),
