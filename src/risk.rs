@@ -72,32 +72,24 @@ pub(crate) async fn update_risk(
     mut risk_management_db_conn: Connection<database::RiskManagementDb>,
     cookies: &CookieJar<'_>,
 ) -> Result<(Status, &'static str), (Status, &'static str)> {
-    // get user id
-    let user_id = if let Some(user_id) = get_logged_in_user_id(cookies, &mut accounts_db_conn).await
-    {
-        user_id
-    } else {
-        return Err((
-            Status::BadRequest,
-            "Cannot fetch user id based on session token cookie or cookie crushed.",
-        ));
-    };
-
-    // check the ownership
-    let fetch_user_id = portfolios::table
-        .filter(portfolios::id.eq(risk_data.portfolio_id))
-        .select(portfolios::trader_account_id)
-        .first::<i32>(&mut portfolios_db_conn)
+    // check the existence of the risk management data
+    let risk_management_exist = risk_management::table
+        .filter(risk_management::portfolio_id.eq(risk_data.portfolio_id))
+        .select((
+            risk_management::risk_type,
+            risk_management::valid,
+            risk_management::pnl,
+            risk_management::position,
+            risk_management::portfolio_id,
+        ))
+        .first::<(String, bool, i64, i32, i32)>(&mut risk_management_db_conn)
         .await;
 
-    match fetch_user_id {
-        Ok(owner_id) if owner_id == user_id => {
-            // update database
-            let update_risk_info = diesel::update(
-                risk_management::table
-                    .filter(risk_management::portfolio_id.eq(risk_data.portfolio_id)),
-            )
-            .set((
+    if let Err(_) = risk_management_exist {
+        // if the risk management data does not exist, insert it
+        let insert_risk_info = diesel::insert_into(risk_management::table)
+            .values((
+                risk_management::portfolio_id.eq(risk_data.portfolio_id),
                 risk_management::risk_type.eq(risk_data.risk_type),
                 risk_management::valid.eq(risk_data.valid),
                 risk_management::pnl.eq(risk_data.pnl),
@@ -106,18 +98,57 @@ pub(crate) async fn update_risk(
             .execute(&mut risk_management_db_conn)
             .await;
 
-            match update_risk_info {
-                Ok(_) => Ok((
-                    Status::Accepted,
-                    "The risk management data is successfully updated.",
-                )),
-                Err(_) => Err((
+        if let Err(_) = insert_risk_info {
+            return Err((Status::BadRequest, "Database error."));
+        } else {
+            return Ok((Status::Ok, "Risk management data inserted."));
+        }
+    } else {
+        // if the risk management data exists
+        // fisrt, check the ownership
+        let user_id =
+            if let Some(user_id) = get_logged_in_user_id(cookies, &mut accounts_db_conn).await {
+                user_id
+            } else {
+                return Err((
                     Status::BadRequest,
-                    "Fail to update the risk management data.",
-                )),
+                    "Cannot fetch user id based on session token cookie or cookie crushed.",
+                ));
+            };
+
+        let fetch_user_id = portfolios::table
+            .filter(portfolios::id.eq(risk_data.portfolio_id))
+            .select(portfolios::trader_account_id)
+            .first::<i32>(&mut portfolios_db_conn)
+            .await;
+
+        match fetch_user_id {
+            Ok(owner_id) if owner_id != user_id => {
+                return Err((Status::Forbidden, "You do not own this portfolio."));
+            }
+            Ok(_) => {}
+            Err(_) => {
+                return Err((Status::BadRequest, "Portfolio not found or database error."));
             }
         }
-        Ok(_) => Err((Status::Forbidden, "You do not own this portfolio.")),
-        Err(_) => Err((Status::BadRequest, "Portfolio not found or database error.")),
+
+        // then, update the database
+        let update_risk_info = diesel::update(
+            risk_management::table.filter(risk_management::portfolio_id.eq(risk_data.portfolio_id)),
+        )
+        .set((
+            risk_management::risk_type.eq(risk_data.risk_type),
+            risk_management::valid.eq(risk_data.valid),
+            risk_management::pnl.eq(risk_data.pnl),
+            risk_management::position.eq(risk_data.position),
+        ))
+        .execute(&mut risk_management_db_conn)
+        .await;
+
+        if let Err(_) = update_risk_info {
+            return Err((Status::BadRequest, "Database error."));
+        } else {
+            return Ok((Status::Ok, "Risk management data updated."));
+        }
     }
 }
