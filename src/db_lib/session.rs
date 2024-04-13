@@ -1,8 +1,8 @@
 use diesel::ExpressionMethods;
 use rand_core::RngCore;
 use rocket::http::Status;
-use rocket_db_pools::Connection;
 use rocket_db_pools::diesel::RunQueryDsl;
+use rocket_db_pools::Connection;
 use std::sync::{Arc, Mutex};
 
 use crate::db_lib::database;
@@ -36,18 +36,18 @@ impl SessionToken {
 
 // generate a session token, insert it into database, and return it if successfully otherwise return Status::BadRequest
 pub(crate) async fn new_session(
-    random: Random, 
-    user_id: i32,  
-    mut accounts_db_coon: &mut Connection<database::AccountsDb>
+    random: Random,
+    user_id: i32,
+    mut accounts_db_conn: &mut Connection<database::AccountsDb>,
 ) -> Result<SessionToken, (Status, &'static str)> {
-
     let session_token = SessionToken::generate_new(random);
     let insert_session = rocket_db_pools::diesel::insert_into(schema::sessions::table)
         .values((
             schema::sessions::user_id.eq(user_id),
-            schema::sessions::session_token.eq(session_token.into_database_value())
+            schema::sessions::session_token.eq(session_token.into_database_value()),
         ))
-        .execute(&mut accounts_db_coon).await;
+        .execute(&mut accounts_db_conn)
+        .await;
 
     if let Ok(_) = insert_session {
         return Ok(session_token);

@@ -1,10 +1,10 @@
+use ::diesel::ExpressionMethods;
+use pbkdf2::password_hash::PasswordHasher;
 use rocket::form::{Form, Strict};
 use rocket::http::Status;
 use rocket::response::Redirect;
 use rocket_db_pools::diesel::prelude::RunQueryDsl;
 use rocket_db_pools::Connection;
-use pbkdf2::password_hash::PasswordHasher;
-use ::diesel::ExpressionMethods;
 
 use crate::db_lib::database;
 use crate::db_lib::schema;
@@ -15,7 +15,7 @@ pub(crate) struct SignupInfo<'r> {
     user_name: &'r str,
     user_email: &'r str,
     user_password: &'r str,
-    confirm_password: &'r str
+    confirm_password: &'r str,
 }
 
 // TODO, signup is available only when not logged in
@@ -23,10 +23,9 @@ pub(crate) struct SignupInfo<'r> {
 // Otherwise, return Status::BadRequest and a string indicating the error. (It is not fancy at all :< )
 #[post("/api/auth/register", data = "<signup_info>")]
 pub(crate) async fn signup(
-    signup_info: Form<Strict<SignupInfo<'_>>>, 
-    mut accounts_db_coon: Connection<database::AccountsDb>
+    signup_info: Form<Strict<SignupInfo<'_>>>,
+    mut accounts_db_conn: Connection<database::AccountsDb>,
 ) -> Result<Status, (Status, &'static str)> {
-
     // confirm the password
     if signup_info.user_password != signup_info.confirm_password {
         return Err((Status::BadRequest, "The password doesn't match."));
@@ -38,7 +37,7 @@ pub(crate) async fn signup(
     let hashed_password = if let Ok(_password) = password_hash {
         _password.to_string()
     } else {
-        return Err((Status::BadRequest, "The password is invalid."))
+        return Err((Status::BadRequest, "The password is invalid."));
     };
 
     // inser the signup user data into the database
@@ -48,8 +47,9 @@ pub(crate) async fn signup(
             schema::accounts::email.eq(signup_info.user_email.to_string()),
             schema::accounts::password.eq(&hashed_password),
         ))
-        .execute(&mut accounts_db_coon).await;
-    
+        .execute(&mut accounts_db_conn)
+        .await;
+
     // if the user data is inserted successfully, redirect to login page
     match signup_user_id {
         Ok(_) => {

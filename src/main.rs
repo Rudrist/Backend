@@ -22,20 +22,20 @@ fn index() -> RawHtml<&'static str> {
 }
 #[get("/api/auth/register")]
 async fn signup_page(
-    mut accounts_db_coon: Connection<database::AccountsDb>,
+    mut accounts_db_conn: Connection<database::AccountsDb>,
     cookies: &CookieJar<'_>,
 ) -> Result<RawHtml<&'static str>, (Status, &'static str)> {
-    if let Some(_) = user_center::get_logged_in_user_id(cookies, &mut accounts_db_coon).await {
+    if let Some(_) = user_center::get_logged_in_user_id(cookies, &mut accounts_db_conn).await {
         return Err((Status::BadRequest, "Already logged in."));
     }
     return Ok(RawHtml(include_str!("../static/signup.html")));
 }
 #[get("/api/auth/login")]
 async fn login_page(
-    mut accounts_db_coon: Connection<database::AccountsDb>,
+    mut accounts_db_conn: Connection<database::AccountsDb>,
     cookies: &CookieJar<'_>,
 ) -> Result<RawHtml<&'static str>, (Status, &'static str)> {
-    if let Some(_) = user_center::get_logged_in_user_id(cookies, &mut accounts_db_coon).await {
+    if let Some(_) = user_center::get_logged_in_user_id(cookies, &mut accounts_db_conn).await {
         return Err((Status::BadRequest, "Already logged in."));
     }
     return Ok(RawHtml(include_str!("../static/login.html")));
@@ -43,10 +43,10 @@ async fn login_page(
 
 #[get("/user_center")]
 async fn user_center_page(
-    mut accounts_db_coon: Connection<database::AccountsDb>,
+    mut accounts_db_conn: Connection<database::AccountsDb>,
     cookies: &CookieJar<'_>,
 ) -> Result<RawHtml<&'static str>, (Status, &'static str)> {
-    if let None = user_center::get_logged_in_user_id(cookies, &mut accounts_db_coon).await {
+    if let None = user_center::get_logged_in_user_id(cookies, &mut accounts_db_conn).await {
         return Err((Status::BadRequest, "Not yet logged in."));
     }
     return Ok(RawHtml(include_str!("../static/user_center.html")));
@@ -54,10 +54,10 @@ async fn user_center_page(
 
 #[get("/api/auth/forget")]
 async fn forget_page(
-    mut accounts_db_coon: Connection<database::AccountsDb>,
+    mut accounts_db_conn: Connection<database::AccountsDb>,
     cookies: &CookieJar<'_>,
 ) -> Result<RawHtml<&'static str>, (Status, &'static str)> {
-    if let Some(_) = user_center::get_logged_in_user_id(cookies, &mut accounts_db_coon).await {
+    if let Some(_) = user_center::get_logged_in_user_id(cookies, &mut accounts_db_conn).await {
         return Err((Status::BadRequest, "Already logged in."));
     }
     return Ok(RawHtml(include_str!("../static/forget.html")));
@@ -70,7 +70,7 @@ async fn reset_page(
     username: String,
     resettoken: String,
     expiration_timestamp: String,
-    mut accounts_db_coon: Connection<database::AccountsDb>,
+    mut accounts_db_conn: Connection<database::AccountsDb>,
     cookies: &CookieJar<'_>,
 ) -> Result<(Status, &'static str), (Status, &'static str)> {
     let expiration_time = expiration_timestamp.parse::<DateTime<Utc>>();

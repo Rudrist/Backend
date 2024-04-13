@@ -10,12 +10,12 @@ use rocket_db_pools::diesel::prelude::*;
 
 #[get("/api/risk")]
 pub(crate) async fn get_risk_status(
-    mut accounts_db_coon: Connection<database::AccountsDb>,
+    mut accounts_db_conn: Connection<database::AccountsDb>,
     mut risk_management_db_conn: Connection<database::RiskManagementDb>,
     cookies: &CookieJar<'_>,
 ) -> Result<(Status, String), (Status, &'static str)> {
     // get user id
-    let user_id = if let Some(user_id) = get_logged_in_user_id(cookies, &mut accounts_db_coon).await
+    let user_id = if let Some(user_id) = get_logged_in_user_id(cookies, &mut accounts_db_conn).await
     {
         user_id
     } else {
@@ -67,13 +67,13 @@ pub(crate) struct RiskData<'r> {
 #[post("/api/risk", data = "<risk_data>")]
 pub(crate) async fn update_risk(
     risk_data: Form<Strict<RiskData<'_>>>,
-    mut accounts_db_coon: Connection<database::AccountsDb>,
-    mut portfolios_db_conn: Connection<database::PortfolioDb>,
+    mut accounts_db_conn: Connection<database::AccountsDb>,
+    mut portfolios_db_conn: Connection<database::PortfoliosDb>,
     mut risk_management_db_conn: Connection<database::RiskManagementDb>,
     cookies: &CookieJar<'_>,
 ) -> Result<(Status, &'static str), (Status, &'static str)> {
     // get user id
-    let user_id = if let Some(user_id) = get_logged_in_user_id(cookies, &mut accounts_db_coon).await
+    let user_id = if let Some(user_id) = get_logged_in_user_id(cookies, &mut accounts_db_conn).await
     {
         user_id
     } else {
