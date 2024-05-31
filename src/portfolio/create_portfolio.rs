@@ -7,24 +7,15 @@ use rocket::serde::json::{json, Value};
 use rocket_db_pools::diesel::prelude::RunQueryDsl;
 use rocket_db_pools::{diesel, Connection};
 use serde::{Deserialize, Serialize};
+use crate::db_lib::query::*;
 use crate::auth::validation::UserAuth;
 use crate::db_lib::schema::{portfolio_balance, portfolios, trading_pairs, positions};
 use crate::db_lib::database;
 
-
-#[derive(Serialize, Deserialize)]
-pub struct Position<'r> {
-    base_currency_id: &'r str,
-    quote_currency_id: &'r str,
-}
-
 #[derive(Serialize, Deserialize)]
 pub struct AddPortfolioInfo<'r> {
     name: &'r str,
-    amount: &'r str,
-    currency_id: &'r str,
-    portfolio_type: &'r str,
-    position: Vec<Position<'r>>,
+    position: Vec<String>,
 }
 
 
@@ -38,22 +29,12 @@ pub async fn add_portfolio<'r>(
     // ensure the user is logged in
     let user_id = _user_auth.user_id;
 
-    let portfolio_type: i32 = match add_portfolio_info.portfolio_type.parse() {
-        Ok(value) => value,
-        Err(_) => {
-            return (
-                Status::BadRequest,
-                json!({"message": "Invalid portfolio_type value"}),
-            );
-        }
-    };
-
     // insert the portfolio data into the database
     let portfolio_result = rocket_db_pools::diesel::insert_into(portfolios::table)
         .values((
             portfolios::name.eq(add_portfolio_info.name.to_string()),
             portfolios::trader_account_id.eq(user_id),
-            portfolios::portfolio_type.eq(portfolio_type),
+            portfolios::portfolio_type.eq(2),
         ))
         .returning(portfolios::id)
         .get_result::<i32>(&mut db_conn)
@@ -64,84 +45,64 @@ pub async fn add_portfolio<'r>(
         Err(_) => {
             return (
                 Status::BadRequest,
-                json!({"message": "Failed to insert into portfolios"}),
+                json!({"status":"error", "message": "Failed to insert into portfolios"}),
             );
         }
     };
-
-    let currency_id: i32 = match add_portfolio_info.currency_id.parse() {
-        Ok(value) => value,
-        Err(_) => {
-            return (
-                Status::BadRequest,
-                json!({"message": "Invalid portfolio_type value"}),
-            );
-        }
-    };
-
-    let portfolio_balance_result = rocket_db_pools::diesel::insert_into(portfolio_balance::table)
-        .values((
-            portfolio_balance::portfolio_id.eq(portfolio_id),
-            portfolio_balance::currency_id.eq(currency_id),
-            portfolio_balance::quantity.eq(sql::<BigInt>(&add_portfolio_info.amount.to_string())),
-        ))
-        .returning(portfolio_balance::id)
-        .get_result::<i32>(&mut db_conn)
-        .await;
-
-    let _portfolio_balance_id: i32 = match portfolio_balance_result {
-        Ok(value) => value,
-        Err(_) => {
-            return (
-                Status::BadRequest,
-                json!({"message": "Failed to insert into portfolio_balance"}),
-            );
-        }
-    };
-
-    // Iterate over positions and insert into the corresponding tables
     for pos in &add_portfolio_info.position {
-        let base_currency_id: i32 = match pos.base_currency_id.parse() {
-            Ok(value) => value,
-            Err(_) => {
-                return (
-                    Status::BadRequest,
-                    json!({"message": "Invalid base_currency_id value"}),
-                );
-            }
-        };
-
-        let quote_currency_id: i32 = match pos.quote_currency_id.parse() {
-            Ok(value) => value,
-            Err(_) => {
-                return (
-                    Status::BadRequest,
-                    json!({"message": "Invalid quote_currency_id value"}),
-                );
-            }
-        };
-
-        // Insert into trading_pairs table
-        let trading_pair_result =  rocket_db_pools::diesel::insert_into(trading_pairs::table)
+        let base_id;
+        let quote_id;
+        let position:Vec<&str> = pos.split("/").collect();
+        if let Ok((_base_id, _quote_id, _)) = get_trading_pair_id(&mut db_conn, (position[0], position[1])).await{
+            base_id = _base_id;
+            quote_id = _quote_id;
+        }else{
+            // TODO add rollback
+            return (
+                Status::BadRequest,
+                json!({"status":"error", "message":"Position not found"}),
+            );
+        }
+        let mut portfolio_balance_result = rocket_db_pools::diesel::insert_into(portfolio_balance::table)
             .values((
-                trading_pairs::base_currency_id.eq(base_currency_id),
-                trading_pairs::quote_currency_id.eq(quote_currency_id),
+                portfolio_balance::portfolio_id.eq(portfolio_id),
+                portfolio_balance::currency_id.eq(base_id),
+                portfolio_balance::quantity.eq(sql::<BigInt>("0")),
             ))
-            .returning(trading_pairs::id)
+            .returning(portfolio_balance::id)
             .get_result::<i32>(&mut db_conn)
             .await;
 
-        let trading_pair_id: i32 = match trading_pair_result {
+        let _portfolio_balance_id: i32 = match portfolio_balance_result {
             Ok(value) => value,
-            Err(err) => {
-                println!("Error: {:?}", err);
+            Err(_) => {
                 return (
                     Status::BadRequest,
-                    json!({"message": "Failed to insert into trading_pairs"}),
+                    json!({"status":"error", "message": "Failed to insert base into portfolio_balance"}),
                 );
             }
         };
 
+        portfolio_balance_result = rocket_db_pools::diesel::insert_into(portfolio_balance::table)
+            .values((
+                portfolio_balance::portfolio_id.eq(portfolio_id),
+                portfolio_balance::currency_id.eq(quote_id),
+                portfolio_balance::quantity.eq(sql::<BigInt>("0")),
+            ))
+            .returning(portfolio_balance::id)
+            .get_result::<i32>(&mut db_conn)
+            .await;
+
+        let _portfolio_balance_id: i32 = match portfolio_balance_result {
+            Ok(value) => value,
+            Err(_) => {
+                return (
+                    Status::BadRequest,
+                    json!({"status":"error", "message": "Failed to insert quote into portfolio_balance"}),
+                );
+            }
+        };
+        let trading_pair_id = get_trading_pair_id(&mut db_conn, (position[0], position[1])).await.unwrap().2;
         // Insert into positions table
         let position_result =  rocket_db_pools::diesel::insert_into(positions::table)
             .values((
@@ -157,10 +118,10 @@ pub async fn add_portfolio<'r>(
             Err(_) => {
                 return (
                     Status::BadRequest,
-                    json!({"message": "Failed to insert into positions"}),
+                    json!({"status":"error", "message": "Failed to insert into positions"}),
                 );
             }
         };
     }
-    return (Status::Ok, json!({"status":"successful"}));
+    return (Status::Ok, json!({"status":"successful", "id": portfolio_id}));
 }

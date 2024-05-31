@@ -101,7 +101,8 @@ CREATE TABLE IF NOT EXISTS accounts (
     -- phone_number VARCHAR(20), -- 電話號碼
     -- date_of_birth DATE, -- 出生日期
     time_stamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- 帳戶建立時間，預設為當前時間
-    account_type INTEGER -- 0: admin, 1: trader, 2: customer
+    account_type INTEGER, -- 0: admin, 1: trader, 2: customer
+    salt VARCHAR(70) NOT NULL
     -- balance DECIMAL(28, 8) NOT NULL DEFAULT 0.0, -- 資金餘額
     -- admin_account_id BIGINT DEFAULT currval('accounts_id_seq') -- 預設為自己的ID
 );
@@ -207,6 +208,17 @@ ALTER TABLE sessions ADD CONSTRAINT fk_sessions_user_id FOREIGN KEY (user_id) RE
 INSERT INTO currencies (code, name) VALUES ('BTC', 'BTC dollar');
 INSERT INTO currencies (code, name) VALUES ('ETH', 'ETH dollar');
 INSERT INTO currencies (code, name) VALUES ('USDT', 'USDT dollar');
+INSERT INTO accounts (id, email, salt, username, password, account_type) VALUES (1, '123@123', '6ZuyJJT76RRXQ3jMHq8Tyg', 'admin', '123456', 0);-- password: 123456
+INSERT INTO portfolios (name, trader_account_id, portfolio_type) VALUES ('main', 1, 0);
+INSERT INTO portfolio_balance (portfolio_id, quantity, currency_id) VALUES (1, 100000, 1);
+INSERT INTO portfolio_balance (portfolio_id, quantity, currency_id) VALUES (1, 100000, 2);
+INSERT INTO portfolio_balance (portfolio_id, quantity, currency_id) VALUES (1, 100000, 3);
+INSERT INTO portfolios (name, trader_account_id, portfolio_type) VALUES ('misc', 1, 1);
+INSERT INTO portfolio_balance (portfolio_id, quantity, currency_id) VALUES (2, 0, 1);
+INSERT INTO portfolio_balance (portfolio_id, quantity, currency_id) VALUES (2, 0, 2);
+INSERT INTO portfolio_balance (portfolio_id, quantity, currency_id) VALUES (2, 0, 3);
+INSERT INTO trading_pairs (base_currency_id, quote_currency_id) VALUES (1, 3);
+INSERT INTO trading_pairs (base_currency_id, quote_currency_id) VALUES (2, 3);
 -- ALTER TABLE bbgo_start_info ADD CONSTRAINT fk_bbgo_api_keys_id FOREIGN KEY (api_keys_id) REFERENCES exchange_api_keys(id);
 -- ALTER TABLE bbgo_start_info ADD CONSTRAINT fk_bbgo_pair_id FOREIGN KEY (pair_id) REFERENCES trading_pairs(id);
 -- ALTER TABLE bbgo_start_info ADD CONSTRAINT fk_bbgo_strategy_id FOREIGN KEY (strategy_id) REFERENCES trading_strategy(id);

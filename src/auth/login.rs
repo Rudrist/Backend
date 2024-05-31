@@ -5,6 +5,8 @@ use crate::db_lib::{database, RAND};
 use ::diesel::ExpressionMethods;
 use diesel::query_dsl::methods::{FilterDsl, SelectDsl};
 use pbkdf2::password_hash::PasswordHash;
+use pbkdf2::password_hash::PasswordHasher;
+use pbkdf2::password_hash::SaltString;
 use pbkdf2::{password_hash::PasswordVerifier, Pbkdf2};
 use rocket::http::{Cookie, CookieJar, Status};
 use rocket::serde::json::Json;
@@ -29,14 +31,14 @@ pub async fn login(
     random: &State<RAND>,
 ) -> (Status, Value) {
     // query the id and (hashed)password in the database according to the username
-    let login_result = accounts::table
-        .select((accounts::id, accounts::password))
+    let login_result:Result<(i32, String, String), _> = accounts::table
+        .select((accounts::id, accounts::password, accounts::salt))
         .filter(accounts::username.eq(login_info.name.to_string()))
-        .first::<(i32, String)>(&mut db_conn)
+        .first::<(i32, String, String)>(&mut db_conn)
         .await;
 
     // If query fails, return badquest
-    let (user_id, hashed_password) = if let Ok(login_result_ok) = login_result {
+    let (user_id, password, salt) = if let Ok(login_result_ok) = login_result {
         login_result_ok
     } else {
         return (
@@ -44,12 +46,16 @@ pub async fn login(
             json!({"status":"error", "message":"Login fails. Probably wrong username or password."}),
         );
     };
-
+    let salt: SaltString = SaltString::encode_b64(salt.as_bytes()).unwrap();
+    // let password_hash = pbkdf2::Pbkdf2.hash_password(login_info.password.as_bytes(), &salt).unwrap();
+    let password_hash = login_info.password;
     // If (hashed)password doesn't match, return badrequest
-    if let Err(_err) = Pbkdf2.verify_password(
-        login_info.password.as_bytes(),
-        &PasswordHash::new(&hashed_password).unwrap(),
-    ) {
+    // if let Err(_err) = Pbkdf2.verify_password(
+    //     password.as_bytes(),
+    //     &password_hash,
+    // ) 
+    if password_hash != password
+    {
         return (
             Status::BadRequest,
             json!({"status":"error", "message":"Wrong password."}),

@@ -15,6 +15,7 @@ use crate::db_lib::database;
 pub struct ChangePortfolioInfo<'r> {
     name: &'r str,
     amount: i32,
+    symbol: &'r str,
 }
 
 
@@ -39,11 +40,11 @@ pub async fn change_portfolio(
         Err(_) => {
             return (
                 Status::BadRequest,
-                json!({"message": "The portfolio does not exist"}),
+                json!({"status":"error", "message": "The portfolio does not exist"}),
             );
         }
     };
-
+    // TODO need to change main account
     // update portfolio_balance
     let update_result = diesel::update(
         portfolio_balance::table.filter(portfolio_balance::portfolio_id.eq(portfolio_id)),
@@ -58,7 +59,7 @@ pub async fn change_portfolio(
                 // not find matched portfolio
                 return (
                     Status::BadRequest,
-                    json!({"message": "Portfolio balance not found"}),
+                    json!({"status":"error", "message": "Portfolio balance not found"}),
                 );
             } else {
                 return (Status::Ok, json!({"status":"successful"}));
@@ -67,7 +68,7 @@ pub async fn change_portfolio(
         Err(_) => {
             return (
                 Status::InternalServerError,
-                json!({"message": "Failed to update portfolio balance"}),
+                json!({"status":"error", "message": "Failed to update portfolio balance"}),
             );
         }
     }

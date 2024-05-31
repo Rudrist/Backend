@@ -28,20 +28,22 @@ pub async fn signup(
 ) -> (Status, Value) {
     // hash the password
     let salt = pbkdf2::password_hash::SaltString::generate(&mut rand_core::OsRng);
-    let password_hash = pbkdf2::Pbkdf2.hash_password(signup_info.password.as_bytes(), &salt);
-    let hashed_password = if let Ok(_password) = password_hash {
-        _password.to_string()
-    } else {
-        return (
-            Status::BadRequest,
-            json!({"status":"error", "message": "The password is invalid."}),
-        );
-    };
+    let hashed_password = signup_info.password;
+    // let password_hash = pbkdf2::Pbkdf2.hash_password(signup_info.password.as_bytes(), &salt);
+    // let hashed_password = if let Ok(_password) = password_hash {
+    //     _password.to_string()
+    // } else {
+    //     return (
+    //         Status::BadRequest,
+    //         json!({"status":"error", "message": "The password is invalid."}),
+    //     );
+    // };
 
     // inser the signup user data into the database
     let signup_user_id = rocket_db_pools::diesel::insert_into(schema::accounts::table)
         .values((
             schema::accounts::username.eq(signup_info.name.to_string()),
+            schema::accounts::salt.eq(salt.to_string()),
             schema::accounts::email.eq(signup_info.email.to_string()),
             schema::accounts::password.eq(&hashed_password),
             schema::accounts::account_type.eq(signup_info.user_type),

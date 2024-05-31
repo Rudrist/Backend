@@ -6,6 +6,7 @@ from config import session_requests
 data = {
   "name": "test6",
   "amount": 6000,
+  "symbol": "USDT",
 }
 
 res = session_requests.put(config.url + 'portfolio', json=data)

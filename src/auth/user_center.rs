@@ -74,7 +74,7 @@ pub async fn set_new_password(
 
 
 #[derive(Serialize, Deserialize)]
-pub(crate) struct ResetPasswordInfo<'r> {
+pub struct ResetPasswordInfo<'r> {
     password: &'r str,
 }
 
@@ -82,7 +82,7 @@ pub(crate) struct ResetPasswordInfo<'r> {
 // Otherwise, return Status::BadRequest and a string indicating the error. (It is not fancy at all :< )
 #[post("/reset_password", data = "<reset_password_info>")]
 pub async fn reset_password(
-    reset_password_info: Form<Strict<ResetPasswordInfo<'_>>>,
+    reset_password_info: Json<ResetPasswordInfo<'_>>,
     mut db_conn: Connection<database::PgDb>,
     _user_auth: UserAuth,
 ) -> (Status, Value) {
@@ -105,6 +105,7 @@ pub async fn reset_password(
 
 // remove the session token from both the server(database) and the client(cookie)
 #[get("/logout")]
+pub async fn logout(
     mut db_conn: Connection<database::PgDb>,
     cookies: &CookieJar<'_>,
     _user_auth: UserAuth,

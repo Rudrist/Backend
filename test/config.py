@@ -3,5 +3,5 @@ import requests as re
 url = "http://0.0.0.0:8000/api/"
 
 session_requests = re.session()
-session_requests.cookies.set('user_token', '1CPkBA6NpcVLcYhM2GuakCyX5qO+a4pLV1M5MFkk0MBcofxnOe1UUR8D4tsCOGjixTC4J0UIZhOhErAAD1tBuXwSNA%3D%3D', domain = "0.0.0.0")
+session_requests.cookies.set('user_token', '+osdhky5o7vdh9kSpvWtiwGb0Sw6j1ybO1YDDjB5sDP4AFUZP4h5no0h5o56R3V0QFH7IAfnQZdTwTb5kOjrpvTeHw%3D%3D', domain = "0.0.0.0")
 

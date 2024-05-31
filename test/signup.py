@@ -4,7 +4,7 @@ import config
 from config import session_requests
 
 data = {
-  "name": "admin",
+  "name": "test",
   "password": "123456",
   "user_type": 0,
   "email": "admin@localhost",

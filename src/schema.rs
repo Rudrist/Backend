@@ -11,6 +11,8 @@ diesel::table! {
         password -> Varchar,
         time_stamp -> Nullable<Timestamp>,
         account_type -> Nullable<Int4>,
+        #[max_length = 70]
+        salt -> Varchar,
     }
 }
 

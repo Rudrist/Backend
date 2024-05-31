@@ -97,23 +97,23 @@ pub async fn remove_portfolio(
     }
 
     // delete trading_pairs
-    for trading_pair_id in trading_pair_ids {
-        let deleted_trading_pair = diesel::delete(
-            trading_pairs::table.filter(trading_pairs::id.eq(trading_pair_id))
-        )
-        .execute(&mut db_conn)
-        .await;
+    // for trading_pair_id in trading_pair_ids {
+    //     let deleted_trading_pair = diesel::delete(
+    //         trading_pairs::table.filter(trading_pairs::id.eq(trading_pair_id))
+    //     )
+    //     .execute(&mut db_conn)
+    //     .await;
 
-        match deleted_trading_pair {
-            Ok(_) => (),
-            Err(_) => {
-                return (
-                    Status::InternalServerError,
-                    json!({"message": "Error deleting trading pair"}),
-                );
-            }
-        }
-    }
+    //     match deleted_trading_pair {
+    //         Ok(_) => (),
+    //         Err(_) => {
+    //             return (
+    //                 Status::InternalServerError,
+    //                 json!({"message": "Error deleting trading pair"}),
+    //             );
+    //         }
+    //     }
+    // }
 
     // delete portfolio
     let portfolio = diesel::delete(portfolios::table.filter(portfolios::id.eq(portfolio_id)))
