@@ -13,7 +13,7 @@ use std::sync::{Arc, Mutex};
 mod db_lib;
 use db_lib::{database, RAND};
 mod auth;
-use auth::{forget, login, signup, user_center};
+use auth::{login, signup, user_center};
 mod portfolio;
 
 mod order;
@@ -55,18 +55,18 @@ async fn user_center_page(
     return Ok(RawHtml(include_str!("../static/user_center.html")));
 }
 
-#[get("/api/auth/forget")]
-async fn forget_page(
-    mut db_conn: Connection<database::PgDb>,
-    cookies: &CookieJar<'_>,
-) -> Result<RawHtml<&'static str>, (Status, &'static str)> {
-    if let Some(_) = user_center::get_logged_in_user_id(cookies, &mut db_conn).await {
-        return Err((Status::BadRequest, "Already logged in."));
-    }
-    return Ok(RawHtml(include_str!("../static/forget.html")));
-}
+// #[get("/api/auth/forget")]
+// async fn forget_page(
+//     mut db_conn: Connection<database::PgDb>,
+//     cookies: &CookieJar<'_>,
+// ) -> Result<RawHtml<&'static str>, (Status, &'static str)> {
+//     if let Some(_) = user_center::get_logged_in_user_id(cookies, &mut db_conn).await {
+//         return Err((Status::BadRequest, "Already logged in."));
+//     }
+//     return Ok(RawHtml(include_str!("../static/forget.html")));
+// }
 
-/* 
+/*
 #[get("/api/portfolio")]
 async fn portfolio_page(
     mut accounts_db_coon: Connection<database::PgDb>,

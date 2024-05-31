@@ -3,23 +3,21 @@ use rocket_db_pools::Connection;
 
 use crate::auth::validation::UserAuth;
 use crate::db_lib::database;
+use crate::db_lib::query::*;
 use crate::db_lib::schema::{orders, portfolios, positions, quotations};
 use crate::order::bbgo;
 use rocket::serde::json::{json, Json, Value};
 use rocket_db_pools::diesel::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::db_lib::query::*;
-#[get("/api/order?<id>&<st>&<len>&<filter>")]
+#[get("/api/order?<id>&<st>&<len>")]
 pub async fn get_order(
     id: i32,
     st: i32,
     len: i32,
-    filter: String,
+    // filter: String,
     mut db_conn: Connection<database::PgDb>,
     _user_auth: UserAuth,
 ) -> (Status, Value) {
-    let user_id = _user_auth.user_id;
-    println!("TEST: {} {} {} {}", id, st, len, filter);
     let fetch_order = orders::table
         .inner_join(quotations::table.on(orders::quotation_id.eq(quotations::id)))
         .inner_join(positions::table.on(quotations::position_id.eq(positions::id)))

@@ -8,8 +8,8 @@ use rocket_db_pools::{diesel, Connection};
 use serde::{Deserialize, Serialize};
 
 use crate::auth::validation::UserAuth;
-use crate::db_lib::schema::{portfolio_balance, portfolios};
 use crate::db_lib::database;
+use crate::db_lib::schema::{portfolio_balance, portfolios};
 
 #[derive(Serialize, Deserialize)]
 pub struct ChangePortfolioInfo<'r> {
@@ -17,7 +17,6 @@ pub struct ChangePortfolioInfo<'r> {
     amount: i32,
     symbol: &'r str,
 }
-
 
 #[put("/api/portfolio", data = "<change_portfolio_info>")]
 pub async fn change_portfolio(
@@ -72,5 +71,4 @@ pub async fn change_portfolio(
             );
         }
     }
-
 }

@@ -1,7 +1,6 @@
 use crate::db_lib::database;
 use crate::db_lib::schema;
 use ::diesel::ExpressionMethods;
-use pbkdf2::password_hash::PasswordHasher;
 use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::serde::json::{json, Value};
@@ -56,7 +55,10 @@ pub async fn signup(
         Ok(_) => {
             return (Status::Ok, json!({"status": "successful"}));
         }
-        Err(diesel::result::Error::DatabaseError(diesel::result::DatabaseErrorKind::UniqueViolation, _)) => {
+        Err(diesel::result::Error::DatabaseError(
+            diesel::result::DatabaseErrorKind::UniqueViolation,
+            _,
+        )) => {
             return (
                 Status::BadRequest,
                 json!({"status":"error", "message": "Account already exist."}),
@@ -64,10 +66,7 @@ pub async fn signup(
         }
         Err(err) => {
             println!("{:?}", err);
-            return (
-                Status::BadRequest,
-                json!({"message": "Server Error."}),
-            );
+            return (Status::BadRequest, json!({"message": "Server Error."}));
         }
     }
 }

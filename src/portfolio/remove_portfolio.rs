@@ -8,11 +8,9 @@ use rocket_db_pools::diesel::prelude::RunQueryDsl;
 use rocket_db_pools::{diesel, Connection};
 use serde::{Deserialize, Serialize};
 
-
-
 use crate::auth::validation::UserAuth;
-use crate::db_lib::schema::{orders, portfolio_balance, portfolios, positions, quotations};
 use crate::db_lib::database;
+use crate::db_lib::schema::{orders, portfolio_balance, portfolios, positions, quotations};
 
 #[derive(Serialize, Deserialize)]
 pub struct RemovePortfolioInfo<'r> {
@@ -25,7 +23,6 @@ pub async fn remove_portfolio(
     mut db_conn: Connection<database::PgDb>,
     _user_auth: UserAuth,
 ) -> (Status, Value) {
-
     // ensure the user is logged in
     let _user_id = _user_auth.user_id;
 
@@ -69,7 +66,7 @@ pub async fn remove_portfolio(
         .load(&mut db_conn)
         .await;
 
-    let positions_ids  = match position_ids_result {
+    let positions_ids = match position_ids_result {
         Ok(ids) => ids,
         Err(_err) => {
             return (
@@ -78,10 +75,9 @@ pub async fn remove_portfolio(
             );
         }
     };
-    let delete_order = diesel::delete(
-        orders::table.filter(orders::portfolio_id.eq(portfolio_id)),
-    ).execute(&mut db_conn)
-    .await;
+    let delete_order = diesel::delete(orders::table.filter(orders::portfolio_id.eq(portfolio_id)))
+        .execute(&mut db_conn)
+        .await;
     match delete_order {
         Ok(_) => (),
         Err(_) => {
@@ -93,11 +89,10 @@ pub async fn remove_portfolio(
     }
     // delete quotation
     for position_id in positions_ids {
-        let deleted_quotation = diesel::delete(
-            quotations::table.filter(quotations::position_id.eq(position_id))
-        )
-        .execute(&mut db_conn)
-        .await;
+        let deleted_quotation =
+            diesel::delete(quotations::table.filter(quotations::position_id.eq(position_id)))
+                .execute(&mut db_conn)
+                .await;
         match deleted_quotation {
             Ok(_) => (),
             Err(_) => {
@@ -110,11 +105,10 @@ pub async fn remove_portfolio(
     }
 
     // delete positions
-    let deleted_positions = diesel::delete(
-        positions::table.filter(positions::portfolio_id.eq(portfolio_id))
-    )
-    .execute(&mut db_conn)
-    .await;
+    let deleted_positions =
+        diesel::delete(positions::table.filter(positions::portfolio_id.eq(portfolio_id)))
+            .execute(&mut db_conn)
+            .await;
 
     match deleted_positions {
         Ok(_) => (),
@@ -134,11 +128,12 @@ pub async fn remove_portfolio(
     match portfolio {
         Ok(_) => {
             return (Status::Ok, json!({"status":"successful"}));
-        } Err(_) => {
+        }
+        Err(_) => {
             return (
                 Status::InternalServerError,
                 json!({"message": "Error deleting portfolio"}),
             );
         }
-    }   
+    }
 }

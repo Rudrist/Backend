@@ -1,11 +1,11 @@
 use rand::{thread_rng, Rng};
-
+#[allow(dead_code)]
 pub fn handle_order(
-    base: &String,
-    quote: &String,
-    order_type: &String,
-    price: &String,
-    quantity: &String,
+    _base: &String,
+    _quote: &String,
+    _order_type: &String,
+    _price: &String,
+    _quantity: &String,
 ) -> i32 {
     let mut rng = thread_rng();
 

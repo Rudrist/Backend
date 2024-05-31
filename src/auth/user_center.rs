@@ -3,10 +3,10 @@ use diesel::query_dsl::methods::{FilterDsl, SelectDsl};
 use pbkdf2::password_hash::PasswordHasher;
 use rocket::http::{CookieJar, Status};
 use rocket::response::Redirect;
-use rocket_db_pools::diesel::prelude::RunQueryDsl;
-use rocket_db_pools::{diesel, Connection};
 use rocket::serde::json::Json;
 use rocket::serde::json::{json, Value};
+use rocket_db_pools::diesel::prelude::RunQueryDsl;
+use rocket_db_pools::{diesel, Connection};
 use serde::{Deserialize, Serialize};
 
 use crate::auth::validation::UserAuth;
@@ -72,7 +72,6 @@ pub async fn set_new_password(
     }
 }
 
-
 #[derive(Serialize, Deserialize)]
 pub struct ResetPasswordInfo<'r> {
     password: &'r str,
@@ -115,10 +114,12 @@ pub async fn logout(
 
     // remove session token from server(database) and client(cookie)
     cookies.remove_private(USER_COOKIE_NAME);
-    let logout_result = diesel::delete(sessions::table.filter(sessions::user_id.eq(user_id))).execute(&mut db_conn).await;
+    let logout_result = diesel::delete(sessions::table.filter(sessions::user_id.eq(user_id)))
+        .execute(&mut db_conn)
+        .await;
 
     match logout_result {
-        Ok(_) => { 
+        Ok(_) => {
             return (Status::Ok, json!({"status":"successful"}));
         }
         Err(_) => {

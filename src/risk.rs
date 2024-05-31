@@ -81,10 +81,10 @@ pub async fn update_risk(
 ) -> (Status, Value) {
     // check the existence of the risk management data
     let position_id;
-    let position:Vec<&str> = risk_data.position.split("/").collect();
-    if let Ok(id) = get_position(&mut db_conn, position[0], position[1]).await{
+    let position: Vec<&str> = risk_data.position.split("/").collect();
+    if let Ok(id) = get_position(&mut db_conn, position[0], position[1]).await {
         position_id = id;
-    }else{
+    } else {
         return (
             Status::BadRequest,
             json!({"status":"error", "message":"Position not found"}),

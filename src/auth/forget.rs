@@ -1,28 +1,18 @@
-use std::env;
+// use std::env;
 
-use ::diesel::ExpressionMethods;
-use chrono::{Duration, Utc};
-use diesel::query_dsl::methods::{FilterDsl, SelectDsl};
+// use chrono::{Duration, Utc};
 
-use lettre::transport::smtp::authentication::Credentials;
-use lettre::{Message, SmtpTransport, Transport};
-use rand_core::{OsRng, RngCore};
-use rocket::http::{CookieJar, Status};
-use rocket_db_pools::Connection;
-use serde::{Deserialize, Serialize};
-use urlencoding::encode;
+// use lettre::transport::smtp::authentication::Credentials;
+// use lettre::{Message, SmtpTransport, Transport};
+// use serde::{Deserialize, Serialize};
+// use urlencoding::encode;
 
-use crate::auth::user_center::get_logged_in_user_id;
-use crate::db_lib::schema::accounts;
-use crate::db_lib::database;
+// #[derive(Serialize, Deserialize)]
+// pub(crate) struct ForgetPasswordInfo<'r> {
+//     name: &'r str,
+// }
 
-
-#[derive(Serialize, Deserialize)]
-pub(crate) struct ForgetPasswordInfo<'r> {
-    name: &'r str,
-}
-
-/* 
+/*
 #[post("/api/auth/forget", data = "<forget_password_info>")]
 pub async fn forget_password(
     forget_password_info: Form<Strict<ForgetPasswordInfo<'_>>>,
@@ -69,87 +59,87 @@ pub async fn forget_password(
 }
 */
 
-pub async fn send_reset_password_email(
-    user_name: &str,
-    user_email: &str,
-    reset_token: &u64,
-) -> Result<lettre::transport::smtp::response::Response, lettre::transport::smtp::Error> {
-    let smtp_key: &str = "pA6ZPCjEVv7U0Grz";
-    let from_email: &str = "testgdscmail@gmail.com";
-    let to_email: &str = &user_email;
-    let host: &str = "smtp-relay.sendinblue.com";
-    let expiration_time = Utc::now() + Duration::minutes(5);
-    let reset_link = format!(
-        "{}/api/auth/forget/{}/{}/{}",
-        env::var("DOMAIN").unwrap_or_default(),
-        user_name,
-        reset_token,
-        encode(&expiration_time.to_rfc3339())
-    );
+// pub async fn send_reset_password_email(
+//     user_name: &str,
+//     user_email: &str,
+//     reset_token: &u64,
+// ) -> Result<lettre::transport::smtp::response::Response, lettre::transport::smtp::Error> {
+//     let smtp_key: &str = "pA6ZPCjEVv7U0Grz";
+//     let from_email: &str = "testgdscmail@gmail.com";
+//     let to_email: &str = &user_email;
+//     let host: &str = "smtp-relay.sendinblue.com";
+//     let expiration_time = Utc::now() + Duration::minutes(5);
+//     let reset_link = format!(
+//         "{}/api/auth/forget/{}/{}/{}",
+//         env::var("DOMAIN").unwrap_or_default(),
+//         user_name,
+//         reset_token,
+//         encode(&expiration_time.to_rfc3339())
+//     );
 
-    let email: Message = Message::builder()
-        .from(from_email.parse().unwrap())
-        .to(to_email.parse().unwrap())
-        .subject("Reset your password")
-        .body(format!(
-            "Please click the following link to reset your password:\nLink:{}\nThe link will expired in 5 minutes.",
-            reset_link))
-        .unwrap();
+//     let email: Message = Message::builder()
+//         .from(from_email.parse().unwrap())
+//         .to(to_email.parse().unwrap())
+//         .subject("Reset your password")
+//         .body(format!(
+//             "Please click the following link to reset your password:\nLink:{}\nThe link will expired in 5 minutes.",
+//             reset_link))
+//         .unwrap();
 
-    let creds: Credentials = Credentials::new(from_email.to_string(), smtp_key.to_string());
+//     let creds: Credentials = Credentials::new(from_email.to_string(), smtp_key.to_string());
 
-    // Open a remote connection to gmail
-    let mailer: SmtpTransport = SmtpTransport::relay(&host)
-        .unwrap()
-        .credentials(creds)
-        .build();
+//     // Open a remote connection to gmail
+//     let mailer: SmtpTransport = SmtpTransport::relay(&host)
+//         .unwrap()
+//         .credentials(creds)
+//         .build();
 
-    // Send the email
-    return mailer.send(&email);
-}
+//     // Send the email
+//     return mailer.send(&email);
+// }
 
-// TO DO post(forget)
-/*
-#[derive(FromForm)]
-pub struct ResetPasswordInfo<'r> {
-    user_password: &'r str,
-    confirm_password: &'r str
-}
+// // TO DO post(forget)
+// /*
+// #[derive(FromForm)]
+// pub struct ResetPasswordInfo<'r> {
+//     user_password: &'r str,
+//     confirm_password: &'r str
+// }
 
-#[post("/api/auth/forget/<username>/<resettoken>/<expiration_timestamp>", data = "<reset_info>")]
-pub async fn reset_password(
-    reset_info: Form<Strict<SignupInfo<'_>>>,
-    mut db_conn: Connection<database::AccountsDb>
-) -> Result<Status, (Status, &'static str)> {
+// #[post("/api/auth/forget/<username>/<resettoken>/<expiration_timestamp>", data = "<reset_info>")]
+// pub async fn reset_password(
+//     reset_info: Form<Strict<SignupInfo<'_>>>,
+//     mut db_conn: Connection<database::AccountsDb>
+// ) -> Result<Status, (Status, &'static str)> {
 
-    // confirm the password
-    if reset_info.user_password != reset_info.confirm_password {
-        return Err((Status::BadRequest, "The password doesn't match."));
-    }
+//     // confirm the password
+//     if reset_info.user_password != reset_info.confirm_password {
+//         return Err((Status::BadRequest, "The password doesn't match."));
+//     }
 
-    // hash the password
-    let salt = pbkdf2::password_hash::SaltString::generate(&mut rand_core::OsRng);
-    let password_hash = pbkdf2::Pbkdf2.hash_password(signup_info.user_password.as_bytes(), &salt);
-    let hashed_password = if let Ok(_password) = password_hash {
-        _password.to_string()
-    } else {
-        return Err((Status::BadRequest, "The password is invalid."))
-    };
+//     // hash the password
+//     let salt = pbkdf2::password_hash::SaltString::generate(&mut rand_core::OsRng);
+//     let password_hash = pbkdf2::Pbkdf2.hash_password(signup_info.user_password.as_bytes(), &salt);
+//     let hashed_password = if let Ok(_password) = password_hash {
+//         _password.to_string()
+//     } else {
+//         return Err((Status::BadRequest, "The password is invalid."))
+//     };
 
-    // update the user's password in the database
-    let update_result = diesel::update(users::table.filter(users::username.eq(&reset_info.user_name)))
-        .set(users::password.eq(&hashed_password))
-        .execute(&mut accounts_db_coon)
-        .await;
+//     // update the user's password in the database
+//     let update_result = diesel::update(users::table.filter(users::username.eq(&reset_info.user_name)))
+//         .set(users::password.eq(&hashed_password))
+//         .execute(&mut accounts_db_coon)
+//         .await;
 
-    match update_result {
-        Ok(_) => {
-            return Ok(Status::Ok);
-        }
-        Err(_) => {
-            return Err((Status::InternalServerError, "Failed to update the password."));
-        }
-    }
+//     match update_result {
+//         Ok(_) => {
+//             return Ok(Status::Ok);
+//         }
+//         Err(_) => {
+//             return Err((Status::InternalServerError, "Failed to update the password."));
+//         }
+//     }
 
-}
-*/
+// }
+// */

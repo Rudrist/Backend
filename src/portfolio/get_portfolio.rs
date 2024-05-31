@@ -8,8 +8,8 @@ use rocket_db_pools::{diesel, Connection};
 use serde::Serialize;
 
 use crate::auth::validation::UserAuth;
-use crate::db_lib::schema::{portfolio_balance, portfolios, positions, trading_pairs};
 use crate::db_lib::database;
+use crate::db_lib::schema::{portfolio_balance, portfolios, positions, trading_pairs};
 
 use std::collections::HashMap;
 
@@ -18,7 +18,6 @@ struct PortfolioData {
     portfolio: Vec<(String, i64, i32, Vec<(i32, i32)>)>,
     len: usize,
 }
-
 
 #[get("/api/portfolio")]
 pub async fn get_portfolio_names(
@@ -57,15 +56,15 @@ pub async fn get_portfolio_names(
                 // Query positions
                 let position_result: Result<Vec<(i32, i32)>, _> = SelectDsl::select(
                     diesel::QueryDsl::filter(portfolios::table, portfolios::name.eq(&name))
-                        .inner_join(
-                            positions::table
-                                .on(portfolios::id.eq(positions::portfolio_id)),
-                        )
+                        .inner_join(positions::table.on(portfolios::id.eq(positions::portfolio_id)))
                         .inner_join(
                             trading_pairs::table
-                                .on(positions::trading_pair_id.eq(trading_pairs::id))
+                                .on(positions::trading_pair_id.eq(trading_pairs::id)),
                         ),
-                    (trading_pairs::base_currency_id, trading_pairs::quote_currency_id)
+                    (
+                        trading_pairs::base_currency_id,
+                        trading_pairs::quote_currency_id,
+                    ),
                 )
                 .load(&mut db_conn)
                 .await;
@@ -100,7 +99,7 @@ pub async fn get_portfolio_names(
                 json!({
                     "status": "successful",
                     "data": portfolio_data
-                })
+                }),
             );
         }
         Err(_) => {
@@ -111,4 +110,3 @@ pub async fn get_portfolio_names(
         }
     }
 }
-

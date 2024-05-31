@@ -1,5 +1,5 @@
 use crate::db_lib::database;
-use crate::db_lib::schema::{currencies, trading_pairs, positions};
+use crate::db_lib::schema::{currencies, positions, trading_pairs};
 use rocket_db_pools::diesel::prelude::*;
 use rocket_db_pools::Connection;
 pub async fn get_trading_pair(
@@ -56,7 +56,7 @@ pub async fn get_trading_pair_id(
         .filter(trading_pairs::base_currency_id.eq(base))
         .filter(trading_pairs::quote_currency_id.eq(quote))
         .select((
-			trading_pairs::base_currency_id,
+            trading_pairs::base_currency_id,
             trading_pairs::quote_currency_id,
             trading_pairs::id,
         ))
@@ -86,24 +86,24 @@ pub async fn get_currency_id(
 
 pub async fn get_position(
     db_conn: &mut Connection<database::PgDb>,
-    base: &str, 
+    base: &str,
     quote: &str,
 ) -> Result<i32, &'static str> {
-	let trading_pair ; 
-	if let Ok((_, _, id)) = get_trading_pair_id(db_conn, (base, quote)).await {
-		trading_pair = id;
-	}else {
-		return Err("Fail to fetch trading pair");
-	}
-	let fetch_position = positions::table
-	.filter(positions::trading_pair_id.eq(trading_pair))
-	.select(positions::id)
-	.first::<i32>(db_conn)
-	.await;
+    let trading_pair;
+    if let Ok((_, _, id)) = get_trading_pair_id(db_conn, (base, quote)).await {
+        trading_pair = id;
+    } else {
+        return Err("Fail to fetch trading pair");
+    }
+    let fetch_position = positions::table
+        .filter(positions::trading_pair_id.eq(trading_pair))
+        .select(positions::id)
+        .first::<i32>(db_conn)
+        .await;
 
-	if let Ok(id) = fetch_position {
-		return Ok(id);
-	}else{
-		return Err("Fail to fetch position");
-	}
+    if let Ok(id) = fetch_position {
+        return Ok(id);
+    } else {
+        return Err("Fail to fetch position");
+    }
 }
