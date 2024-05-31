@@ -9,7 +9,7 @@ use rocket_db_pools::{diesel, Connection};
 use serde::{Deserialize, Serialize};
 use crate::db_lib::query::*;
 use crate::auth::validation::UserAuth;
-use crate::db_lib::schema::{portfolio_balance, portfolios, trading_pairs, positions};
+use crate::db_lib::schema::{portfolio_balance, portfolios, quotations, positions};
 use crate::db_lib::database;
 
 #[derive(Serialize, Deserialize)]
@@ -119,6 +119,24 @@ pub async fn add_portfolio<'r>(
                 return (
                     Status::BadRequest,
                     json!({"status":"error", "message": "Failed to insert into positions"}),
+                );
+            }
+        };
+        // Insert into quotation table
+        let quotation_result =  rocket_db_pools::diesel::insert_into(quotations::table)
+            .values((
+                quotations::quote_currency_id.eq(quote_id),
+                quotations::position_id.eq(_position_id),
+            ))
+            .returning(quotations::id)
+            .get_result::<i32>(&mut db_conn)
+            .await;
+        let _: i32 = match quotation_result {
+            Ok(value) => value,
+            Err(_) => {
+                return (
+                    Status::BadRequest,
+                    json!({"status":"error", "message": "Failed to insert into quotations table"}),
                 );
             }
         };

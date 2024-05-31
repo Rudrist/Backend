@@ -98,7 +98,7 @@ diesel::table! {
     quotations (id) {
         id -> Int4,
         time_stamp -> Timestamp,
-        base_currency_id -> Int4,
+        quote_currency_id -> Int4,
         position_id -> Int4,
     }
 }
@@ -138,7 +138,7 @@ diesel::joinable!(portfolio_balance -> portfolios (portfolio_id));
 diesel::joinable!(portfolios -> accounts (trader_account_id));
 diesel::joinable!(positions -> portfolios (portfolio_id));
 diesel::joinable!(positions -> trading_pairs (trading_pair_id));
-diesel::joinable!(quotations -> currencies (base_currency_id));
+diesel::joinable!(quotations -> currencies (quote_currency_id));
 diesel::joinable!(quotations -> positions (position_id));
 diesel::joinable!(risk_management -> portfolios (portfolio_id));
 diesel::joinable!(risk_management -> trading_pairs (position));

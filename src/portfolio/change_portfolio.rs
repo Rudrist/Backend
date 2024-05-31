@@ -19,7 +19,7 @@ pub struct ChangePortfolioInfo<'r> {
 }
 
 
-#[post("/change_portfolio", data = "<change_portfolio_info>")]
+#[put("/api/portfolio", data = "<change_portfolio_info>")]
 pub async fn change_portfolio(
     change_portfolio_info: Json<ChangePortfolioInfo<'_>>,
     mut db_conn: Connection<database::PgDb>,

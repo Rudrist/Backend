@@ -144,8 +144,8 @@ CREATE TABLE IF NOT EXISTS positions ( -- fix base/quote
 -- 報價
 CREATE TABLE IF NOT EXISTS quotations ( -- fix base
     id SERIAL PRIMARY KEY ,
-    time_stamp TIMESTAMP NOT NULL,
-    base_currency_id INTEGER REFERENCES currencies(id) NOT NULL, -- 幣別 ID
+    time_stamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    quote_currency_id INTEGER REFERENCES currencies(id) NOT NULL, -- 幣別 ID
     position_id SERIAL REFERENCES positions(id)
 );
 
@@ -153,7 +153,7 @@ CREATE TABLE IF NOT EXISTS quotations ( -- fix base
 CREATE TABLE IF NOT EXISTS orders (
     id SERIAL PRIMARY KEY ,
     portfolio_id SERIAL REFERENCES portfolios(id) NOT NULL,
-    time_stamp TIMESTAMP NOT NULL, 
+    time_stamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, 
     state INTEGER NOT NULL, -- 0: pending, 1: success, 2: fail
     buyin BOOLEAN NOT NULL, -- 買或賣
     trading_pair_id INTEGER NOT NULL, -- 幣對 ID

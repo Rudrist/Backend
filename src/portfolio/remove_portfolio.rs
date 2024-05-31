@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 
 use crate::auth::validation::UserAuth;
-use crate::db_lib::schema::{portfolio_balance, portfolios, trading_pairs, positions};
+use crate::db_lib::schema::{portfolio_balance, portfolios, quotations, positions};
 use crate::db_lib::database;
 
 #[derive(Serialize, Deserialize)]
@@ -63,13 +63,13 @@ pub async fn remove_portfolio(
         }
     }
 
-    let trading_pair_ids_result: Result<Vec<i32>, Error> = positions::table
+    let position_ids_result: Result<Vec<i32>, Error> = positions::table
         .filter(positions::portfolio_id.eq(portfolio_id))
-        .select(positions::trading_pair_id)
+        .select(positions::id)
         .load(&mut db_conn)
         .await;
 
-    let trading_pair_ids  = match trading_pair_ids_result {
+    let positions_ids  = match position_ids_result {
         Ok(ids) => ids,
         Err(_err) => {
             return (
@@ -78,6 +78,25 @@ pub async fn remove_portfolio(
             );
         }
     };
+
+    // delete quotation
+    for position_id in positions_ids {
+        let deleted_trading_pair = diesel::delete(
+            quotations::table.filter(quotations::position_id.eq(position_id))
+        )
+        .execute(&mut db_conn)
+        .await;
+
+        match deleted_trading_pair {
+            Ok(_) => (),
+            Err(_) => {
+                return (
+                    Status::InternalServerError,
+                    json!({"message": "Error deleting trading pair"}),
+                );
+            }
+        }
+    }
 
     // delete positions
     let deleted_positions = diesel::delete(
@@ -95,25 +114,6 @@ pub async fn remove_portfolio(
             );
         }
     }
-
-    // delete trading_pairs
-    // for trading_pair_id in trading_pair_ids {
-    //     let deleted_trading_pair = diesel::delete(
-    //         trading_pairs::table.filter(trading_pairs::id.eq(trading_pair_id))
-    //     )
-    //     .execute(&mut db_conn)
-    //     .await;
-
-    //     match deleted_trading_pair {
-    //         Ok(_) => (),
-    //         Err(_) => {
-    //             return (
-    //                 Status::InternalServerError,
-    //                 json!({"message": "Error deleting trading pair"}),
-    //             );
-    //         }
-    //     }
-    // }
 
     // delete portfolio
     let portfolio = diesel::delete(portfolios::table.filter(portfolios::id.eq(portfolio_id)))

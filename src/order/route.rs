@@ -19,11 +19,11 @@ pub async fn get_order(
     _user_auth: UserAuth,
 ) -> (Status, Value) {
     let user_id = _user_auth.user_id;
-
+    println!("TEST: {} {} {} {}", id, st, len, filter);
     let fetch_order = orders::table
         .inner_join(quotations::table.on(orders::quotation_id.eq(quotations::id)))
         .inner_join(positions::table.on(quotations::position_id.eq(positions::id)))
-        .filter(positions::portfolio_id.eq(id))
+        .filter(orders::portfolio_id.eq(id))
         .select((
             orders::id,
             orders::buyin,
@@ -95,8 +95,8 @@ pub async fn place_order(
     let fetch_quotation = quotations::table
         .inner_join(positions::table.on(quotations::position_id.eq(positions::id)))
         .inner_join(portfolios::table.on(portfolios::id.eq(positions::portfolio_id)))
-        .filter(quotations::base_currency_id.eq(trading_pairs.0))
-        .filter(quotations::base_currency_id.eq(trading_pairs.0))
+        .filter(quotations::quote_currency_id.eq(trading_pairs.1))
+        .filter(quotations::quote_currency_id.eq(trading_pairs.1))
         .filter(portfolios::trader_account_id.eq(user_id))
         .filter(portfolios::id.eq(order_data.portfolio_id))
         .select(quotations::id)
@@ -105,7 +105,9 @@ pub async fn place_order(
         .unwrap();
     let _ = rocket_db_pools::diesel::insert_into(orders::table)
         .values((
+            orders::id.eq(order_id),
             orders::quotation_id.eq(fetch_quotation),
+            orders::trading_pair_id.eq(trading_pairs.2),
             orders::state.eq(0),
             orders::buyin.eq(order_data.order_type == "buy"),
             orders::price.eq(order_data.price.parse::<i64>().unwrap()),
