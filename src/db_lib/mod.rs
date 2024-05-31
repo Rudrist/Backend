@@ -1,6 +1,7 @@
 pub mod database;
 pub mod schema;
 pub mod session;
+pub mod query;
 
 use rand_chacha::ChaCha8Rng;
 use std::sync::{Arc, Mutex};

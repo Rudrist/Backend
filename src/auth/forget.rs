@@ -16,6 +16,7 @@ use crate::auth::user_center::get_logged_in_user_id;
 use crate::db_lib::schema::accounts;
 use crate::db_lib::database;
 
+
 #[derive(Serialize, Deserialize)]
 pub(crate) struct ForgetPasswordInfo<'r> {
     name: &'r str,
@@ -23,8 +24,8 @@ pub(crate) struct ForgetPasswordInfo<'r> {
 
 /* 
 #[post("/api/auth/forget", data = "<forget_password_info>")]
-pub(crate) async fn forget_password(
-    forget_password_info: Json<ForgetPasswordInfo<'_>>,
+pub async fn forget_password(
+    forget_password_info: Form<Strict<ForgetPasswordInfo<'_>>>,
     mut db_conn: Connection<database::PgDb>,
     cookies: &CookieJar<'_>,
 ) -> (Status, Value) {
@@ -68,7 +69,7 @@ pub(crate) async fn forget_password(
 }
 */
 
-pub(crate) async fn send_reset_password_email(
+pub async fn send_reset_password_email(
     user_name: &str,
     user_email: &str,
     reset_token: &u64,
@@ -110,13 +111,13 @@ pub(crate) async fn send_reset_password_email(
 // TO DO post(forget)
 /*
 #[derive(FromForm)]
-pub(crate) struct ResetPasswordInfo<'r> {
+pub struct ResetPasswordInfo<'r> {
     user_password: &'r str,
     confirm_password: &'r str
 }
 
 #[post("/api/auth/forget/<username>/<resettoken>/<expiration_timestamp>", data = "<reset_info>")]
-pub(crate) async fn reset_password(
+pub async fn reset_password(
     reset_info: Form<Strict<SignupInfo<'_>>>,
     mut db_conn: Connection<database::AccountsDb>
 ) -> Result<Status, (Status, &'static str)> {

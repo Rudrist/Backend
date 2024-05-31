@@ -9,6 +9,7 @@ use rocket_db_pools::{diesel, Connection};
 use serde::{Deserialize, Serialize};
 
 
+
 use crate::auth::validation::UserAuth;
 use crate::db_lib::schema::{portfolio_balance, portfolios, trading_pairs, positions};
 use crate::db_lib::database;
@@ -20,8 +21,8 @@ pub struct Position<'r> {
     quote_currency_id: &'r str,
 }
 
-#[derive(Serialize, Deserialize)]
-pub(crate) struct AddPortfolioInfo<'r> {
+#[derive(Serialize, Deserialize
+pub struct AddPortfolioInfo<'r> {
     name: &'r str,
     amount: &'r str,
     currency_id: &'r str,
@@ -31,7 +32,7 @@ pub(crate) struct AddPortfolioInfo<'r> {
 
 
 #[post("/api/portfolio", data = "<add_portfolio_info>")]
-pub(crate) async fn add_portfolio(
+pub async fn add_portfolio(
     add_portfolio_info: Json<AddPortfolioInfo<'_>>,
     mut db_conn: Connection<database::PgDb>,
     _user_auth: UserAuth,

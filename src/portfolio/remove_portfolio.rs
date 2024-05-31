@@ -9,17 +9,18 @@ use rocket_db_pools::{diesel, Connection};
 use serde::{Deserialize, Serialize};
 
 
+
 use crate::auth::validation::UserAuth;
 use crate::db_lib::schema::{portfolio_balance, portfolios, trading_pairs, positions};
 use crate::db_lib::database;
 
 #[derive(Serialize, Deserialize)]
-pub(crate) struct RemovePortfolioInfo<'r> {
+pub struct RemovePortfolioInfo<'r> {
     name: &'r str,
 }
 
 #[delete("/api/portfolio", data = "<remove_portfolio_info>")]
-pub(crate) async fn remove_portfolio(
+pub async fn remove_portfolio(
     remove_portfolio_info: Json<RemovePortfolioInfo<'_>>,
     mut db_conn: Connection<database::PgDb>,
     _user_auth: UserAuth,

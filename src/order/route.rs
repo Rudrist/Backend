@@ -1,96 +1,16 @@
 use rocket::http::Status;
-use rocket_db_pools::diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use rocket_db_pools::Connection;
 
 use crate::auth::validation::UserAuth;
 use crate::db_lib::database;
-use crate::db_lib::schema::{currencies, orders, portfolios, positions, quotations, trading_pairs};
+use crate::db_lib::schema::{orders, portfolios, positions, quotations};
 use crate::order::bbgo;
 use rocket::serde::json::{json, Json, Value};
 use rocket_db_pools::diesel::prelude::*;
 use serde::{Deserialize, Serialize};
-async fn get_trading_pair(
-    db_conn: &mut Connection<database::PgDb>,
-    trading_pair_id: i32,
-) -> Result<(String, String), &'static str> {
-    let fetch_trading_pair = trading_pairs::table
-        .filter(trading_pairs::id.eq(trading_pair_id))
-        .select((
-            trading_pairs::base_currency_id,
-            trading_pairs::quote_currency_id,
-        ))
-        .first::<(i32, i32)>(db_conn)
-        .await;
-    if let Ok((base, quote)) = fetch_trading_pair {
-        let base = get_currency(db_conn, base)
-            .await
-            .expect("Fetch base failed");
-        let quote = get_currency(db_conn, quote)
-            .await
-            .expect("Fetch quote failed");
-        return Ok((base, quote));
-    } else {
-        return Err("Fail to fetch trading pair");
-    }
-}
-async fn get_currency(
-    db_conn: &mut Connection<database::PgDb>,
-    currency_id: i32,
-) -> Result<String, &'static str> {
-    let fetch_currency = currencies::table
-        .filter(currencies::id.eq(currency_id))
-        .select(currencies::code)
-        .first::<String>(db_conn)
-        .await;
-    if let Ok(code) = fetch_currency {
-        return Ok(code);
-    } else {
-        return Err("Fail to fetch currencies");
-    }
-}
-async fn get_trading_pair_id(
-    db_conn: &mut Connection<database::PgDb>,
-    trading_pair: (&String, &String),
-) -> Result<(i32, i32), &'static str> {
-    let base = get_currency_id(db_conn, trading_pair.0)
-        .await
-        .expect("Fetch base failed");
-    let quote = get_currency_id(db_conn, trading_pair.1)
-        .await
-        .expect("Fetch quote failed");
-
-    let fetch_trading_pair = trading_pairs::table
-        .filter(trading_pairs::base_currency_id.eq(base))
-        .filter(trading_pairs::quote_currency_id.eq(quote))
-        .select((
-            trading_pairs::base_currency_id,
-            trading_pairs::quote_currency_id,
-        ))
-        .first::<(i32, i32)>(db_conn)
-        .await;
-    if let Ok((base, quote)) = fetch_trading_pair {
-        return Ok((base, quote));
-    } else {
-        return Err("Fail to fetch trading pair");
-    }
-}
-async fn get_currency_id(
-    db_conn: &mut Connection<database::PgDb>,
-    currency_id: &String,
-) -> Result<i32, &'static str> {
-    let fetch_currency = currencies::table
-        .filter(currencies::code.eq(currency_id))
-        .select(currencies::id)
-        .first::<i32>(db_conn)
-        .await;
-    if let Ok(id) = fetch_currency {
-        return Ok(id);
-    } else {
-        return Err("Fail to fetch currencies");
-    }
-}
+use crate::db_lib::query::*;
 #[get("/api/order?<id>&<st>&<len>&<filter>")]
-pub(crate) async fn get_order(
+pub async fn get_order(
     id: i32,
     st: i32,
     len: i32,
@@ -147,15 +67,16 @@ pub(crate) async fn get_order(
 }
 
 #[derive(Serialize, Deserialize)]
-pub(crate) struct OrderData {
+pub struct OrderData {
     base: String,
     quote: String,
     order_type: String,
     price: String,
     quantity: String,
+    portfolio_id: i32,
 }
 #[post("/api/order", data = "<order_data>")]
-pub(crate) async fn place_order(
+pub async fn place_order(
     mut db_conn: Connection<database::PgDb>,
     _user_auth: UserAuth,
     order_data: Json<OrderData>,
@@ -177,17 +98,19 @@ pub(crate) async fn place_order(
         .filter(quotations::base_currency_id.eq(trading_pairs.0))
         .filter(quotations::base_currency_id.eq(trading_pairs.0))
         .filter(portfolios::trader_account_id.eq(user_id))
+        .filter(portfolios::id.eq(order_data.portfolio_id))
         .select(quotations::id)
         .first::<i32>(&mut db_conn)
         .await
         .unwrap();
-    let insert_order = rocket_db_pools::diesel::insert_into(orders::table)
+    let _ = rocket_db_pools::diesel::insert_into(orders::table)
         .values((
             orders::quotation_id.eq(fetch_quotation),
             orders::state.eq(0),
             orders::buyin.eq(order_data.order_type == "buy"),
             orders::price.eq(order_data.price.parse::<i64>().unwrap()),
             orders::qty.eq(order_data.quantity.parse::<i64>().unwrap()),
+            orders::portfolio_id.eq(order_data.portfolio_id),
         ))
         .returning(orders::id)
         .get_result::<i32>(&mut db_conn)

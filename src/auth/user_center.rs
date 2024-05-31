@@ -15,7 +15,7 @@ use crate::db_lib::session::SessionToken;
 use crate::db_lib::{database, USER_COOKIE_NAME};
 
 // return the user_id according to the session token from the client(cookie)
-pub(crate) async fn get_logged_in_user_id(
+pub async fn get_logged_in_user_id(
     cookies: &CookieJar<'_>,
     mut db_conn: &mut Connection<database::PgDb>,
 ) -> Option<i32> {
@@ -45,7 +45,7 @@ pub(crate) async fn get_logged_in_user_id(
 }
 
 // update the (hashed)password on the database
-pub(crate) async fn set_new_password(
+pub async fn set_new_password(
     user_id: i32,
     new_password: &str,
     mut db_conn: &mut Connection<database::PgDb>,
@@ -72,6 +72,7 @@ pub(crate) async fn set_new_password(
     }
 }
 
+
 #[derive(Serialize, Deserialize)]
 pub(crate) struct ResetPasswordInfo<'r> {
     password: &'r str,
@@ -79,9 +80,9 @@ pub(crate) struct ResetPasswordInfo<'r> {
 
 // if signup sucessfully, redirect to login page. (It won't log in automatically)
 // Otherwise, return Status::BadRequest and a string indicating the error. (It is not fancy at all :< )
-#[post("/api/auth/reset", data = "<reset_password_info>")]
-pub(crate) async fn reset_password(
-    reset_password_info: Json<ResetPasswordInfo<'_>>,
+#[post("/reset_password", data = "<reset_password_info>")]
+pub async fn reset_password(
+    reset_password_info: Form<Strict<ResetPasswordInfo<'_>>>,
     mut db_conn: Connection<database::PgDb>,
     _user_auth: UserAuth,
 ) -> (Status, Value) {
@@ -103,8 +104,7 @@ pub(crate) async fn reset_password(
 }
 
 // remove the session token from both the server(database) and the client(cookie)
-#[post("/api/auth/logout")]
-pub(crate) async fn logout(
+#[get("/logout")]
     mut db_conn: Connection<database::PgDb>,
     cookies: &CookieJar<'_>,
     _user_auth: UserAuth,

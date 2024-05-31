@@ -1,17 +1,18 @@
-use rocket::form::{Form, Strict};
 use rocket::http::{CookieJar, Status};
 use rocket_db_pools::diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use rocket_db_pools::Connection;
+// use rudrist_backend::db_lib::schema::risk_management::position;
 
 use crate::auth::user_center::get_logged_in_user_id;
 use crate::auth::validation::UserAuth;
 use crate::db_lib::database;
+use crate::db_lib::query::*;
 use crate::db_lib::schema::{portfolios, risk_management};
+use rocket::serde::json::Json;
 use rocket::serde::json::{json, Value};
-use rocket_db_pools::diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 #[get("/api/risk")]
-pub(crate) async fn get_risk_status(
+pub async fn get_risk_status(
     mut db_conn: Connection<database::PgDb>,
     // cookies: &CookieJar<'_>,
     _user_auth: UserAuth,
@@ -63,24 +64,34 @@ pub(crate) async fn get_risk_status(
     );
 }
 
-#[derive(FromForm)]
-pub(crate) struct RiskData<'r> {
+#[derive(Serialize, Deserialize)]
+pub struct RiskData<'r> {
     risk_type: &'r str,
-    valid: bool,
+    on: bool,
     pnl: i64,
-    position: i32,
-    portfolio_id: i32,
+    position: &'r str,
+    pid: i32,
 }
 
 #[post("/api/risk", data = "<risk_data>")]
-pub(crate) async fn update_risk(
-    risk_data: Form<Strict<RiskData<'_>>>,
+pub async fn update_risk(
+    risk_data: Json<RiskData<'_>>,
     mut db_conn: Connection<database::PgDb>,
     cookies: &CookieJar<'_>,
-) -> Result<(Status, &'static str), (Status, &'static str)> {
+) -> (Status, Value) {
     // check the existence of the risk management data
+    let position_id;
+    let position:Vec<&str> = risk_data.position.split("/").collect();
+    if let Ok(id) = get_position(&mut db_conn, position[0], position[1]).await{
+        position_id = id;
+    }else{
+        return (
+            Status::BadRequest,
+            json!({"status":"error", "message":"Position not found"}),
+        );
+    }
     let risk_management_exist = risk_management::table
-        .filter(risk_management::portfolio_id.eq(risk_data.portfolio_id))
+        .filter(risk_management::portfolio_id.eq(risk_data.pid))
         .select((
             risk_management::risk_type,
             risk_management::valid,
@@ -95,19 +106,25 @@ pub(crate) async fn update_risk(
         // if the risk management data does not exist, insert it
         let insert_risk_info = diesel::insert_into(risk_management::table)
             .values((
-                risk_management::portfolio_id.eq(risk_data.portfolio_id),
+                risk_management::portfolio_id.eq(risk_data.pid),
                 risk_management::risk_type.eq(risk_data.risk_type),
-                risk_management::valid.eq(risk_data.valid),
+                risk_management::valid.eq(risk_data.on),
                 risk_management::pnl.eq(risk_data.pnl),
-                risk_management::position.eq(risk_data.position),
+                risk_management::position.eq(position_id),
             ))
             .execute(&mut db_conn)
             .await;
 
         if let Err(_) = insert_risk_info {
-            return Err((Status::BadRequest, "Database error."));
+            return (
+                Status::BadRequest,
+                json!({"status":"error", "message": "Database error."}),
+            );
         } else {
-            return Ok((Status::Ok, "Risk management data inserted."));
+            return (
+                Status::Ok,
+                json!({"status":"successful", "message":"Risk management data inserted."}),
+            );
         }
     } else {
         // if the risk management data exists
@@ -115,45 +132,57 @@ pub(crate) async fn update_risk(
         let user_id = if let Some(user_id) = get_logged_in_user_id(cookies, &mut db_conn).await {
             user_id
         } else {
-            return Err((
+            return (
                 Status::BadRequest,
-                "Cannot fetch user id based on session token cookie or cookie crushed.",
-            ));
+                json!("Cannot fetch user id based on session token cookie or cookie crushed."),
+            );
         };
 
         let fetch_user_id = portfolios::table
-            .filter(portfolios::id.eq(risk_data.portfolio_id))
+            .filter(portfolios::id.eq(risk_data.pid))
             .select(portfolios::trader_account_id)
             .first::<i32>(&mut db_conn)
             .await;
 
         match fetch_user_id {
             Ok(owner_id) if owner_id != user_id => {
-                return Err((Status::Forbidden, "You do not own this portfolio."));
+                return (
+                    Status::Forbidden,
+                    json!({"status":"error", "message":"You do not own this portfolio."}),
+                );
             }
             Ok(_) => {}
             Err(_) => {
-                return Err((Status::BadRequest, "Portfolio not found or database error."));
+                return (
+                    Status::BadRequest,
+                    json!({"status":"error", "message":"Portfolio not found or database error."}),
+                );
             }
         }
 
         // then, update the database
         let update_risk_info = diesel::update(
-            risk_management::table.filter(risk_management::portfolio_id.eq(risk_data.portfolio_id)),
+            risk_management::table.filter(risk_management::portfolio_id.eq(risk_data.pid)),
         )
         .set((
             risk_management::risk_type.eq(risk_data.risk_type),
-            risk_management::valid.eq(risk_data.valid),
+            risk_management::valid.eq(risk_data.on),
             risk_management::pnl.eq(risk_data.pnl),
-            risk_management::position.eq(risk_data.position),
+            risk_management::position.eq(position_id),
         ))
         .execute(&mut db_conn)
         .await;
 
         if let Err(_) = update_risk_info {
-            return Err((Status::BadRequest, "Database error."));
+            return (
+                Status::BadRequest,
+                json!({"status":"error", "message":"Database error."}),
+            );
         } else {
-            return Ok((Status::Ok, "Risk management data updated."));
+            return (
+                Status::Ok,
+                json!({"status":"error", "message":"Risk management data updated."}),
+            );
         }
     }
 }

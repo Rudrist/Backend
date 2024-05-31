@@ -17,13 +17,13 @@ pub struct ChangePortfolioInfo<'r> {
     amount: i32,
 }
 
-#[put("/api/portfolio", data = "<change_portfolio_info>")]
-pub(crate) async fn change_portfolio(
-    change_portfolio_info: Json<ChangePortfolioInfo<'_>>,
-    mut db_conn: Connection<database::PgDb>,
-    _user_auth: UserAuth,
-) -> (Status, Value) {
 
+#[post("/change_portfolio", data = "<change_portfolio_info>")]
+pub async fn change_portfolio(
+    change_portfolio_info: Form<Strict<ChangePortfolioInfo<'_>>>,
+    mut db_coon: Connection<database::PgDb>,
+    cookies: &CookieJar<'_>,
+) -> Result<Status, (Status, &'static str)> {
     // ensure the user is logged in
     let _user_id = _user_auth.user_id;
 

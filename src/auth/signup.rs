@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 // use crate::types::ResponseData;
 // The signup info of the user. Simple constraints are checked in the front end (html).
 #[derive(Serialize, Deserialize)]
-pub(crate) struct SignupInfo<'r> {
+pub struct SignupInfo<'r> {
     name: &'r str,
     password: &'r str,
     email: &'r str,
@@ -22,7 +22,7 @@ pub(crate) struct SignupInfo<'r> {
 // if signup sucessfully, redirect to login page. (It won't log in automatically)
 // Otherwise, return Status::BadRequest and a string indicating the error. (It is not fancy at all :< )
 #[post("/api/auth/user", data = "<signup_info>")]
-pub(crate) async fn signup(
+pub async fn signup(
     signup_info: Json<SignupInfo<'_>>,
     mut db_conn: Connection<database::PgDb>,
 ) -> (Status, Value) {
@@ -34,7 +34,7 @@ pub(crate) async fn signup(
     } else {
         return (
             Status::BadRequest,
-            json!({"message": "The password is invalid."}),
+            json!({"status":"error", "message": "The password is invalid."}),
         );
     };
 
@@ -57,7 +57,7 @@ pub(crate) async fn signup(
         Err(diesel::result::Error::DatabaseError(diesel::result::DatabaseErrorKind::UniqueViolation, _)) => {
             return (
                 Status::BadRequest,
-                json!({"message": "Account already exist."}),
+                json!({"status":"error", "message": "Account already exist."}),
             );
         }
         Err(err) => {

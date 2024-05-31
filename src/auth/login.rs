@@ -14,7 +14,7 @@ use rocket_db_pools::diesel::prelude::RunQueryDsl;
 use rocket_db_pools::Connection;
 use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
-pub(crate) struct LoginInfo<'r> {
+pub struct LoginInfo<'r> {
     name: &'r str,
     password: &'r str,
 }
@@ -22,7 +22,7 @@ pub(crate) struct LoginInfo<'r> {
 // If login successfully, a session token will be saved in both server(database) and the client(cookie), finally redirect to index page
 // Otherwise, Status::Badrequest is returned (not fancy at all)
 #[post("/api/auth/login", data = "<login_info>")]
-pub(crate) async fn login(
+pub async fn login(
     login_info: Json<LoginInfo<'_>>,
     mut db_conn: Connection<database::PgDb>,
     cookies: &CookieJar<'_>,

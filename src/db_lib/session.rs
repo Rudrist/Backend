@@ -11,7 +11,7 @@ use crate::db_lib::schema;
 type Random = Arc<Mutex<rand_chacha::ChaCha8Rng>>;
 
 #[derive(Clone, Copy)]
-pub(crate) struct SessionToken(u128);
+pub struct SessionToken(u128);
 
 impl SessionToken {
     pub fn generate_new(random: Random) -> Self {
@@ -35,7 +35,7 @@ impl SessionToken {
 }
 
 // generate a session token, insert it into database, and return it if successfully otherwise return Status::BadRequest
-pub(crate) async fn new_session(
+pub async fn new_session(
     random: Random,
     user_id: i32,
     mut db_conn: &mut Connection<database::PgDb>,

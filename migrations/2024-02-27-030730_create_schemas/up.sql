@@ -151,6 +151,7 @@ CREATE TABLE IF NOT EXISTS quotations ( -- fix base
 -- 訂單
 CREATE TABLE IF NOT EXISTS orders (
     id SERIAL PRIMARY KEY ,
+    portfolio_id SERIAL REFERENCES portfolios(id) NOT NULL,
     time_stamp TIMESTAMP NOT NULL, 
     state INTEGER NOT NULL, -- 0: pending, 1: success, 2: fail
     buyin BOOLEAN NOT NULL, -- 買或賣

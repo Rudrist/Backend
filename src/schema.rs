@@ -53,6 +53,7 @@ diesel::table! {
 diesel::table! {
     orders (id) {
         id -> Int4,
+        portfolio_id -> Int4,
         time_stamp -> Timestamp,
         state -> Int4,
         buyin -> Bool,
@@ -128,6 +129,7 @@ diesel::table! {
 }
 
 diesel::joinable!(intra_account_transfer_requests -> positions (position_id));
+diesel::joinable!(orders -> portfolios (portfolio_id));
 diesel::joinable!(orders -> quotations (quotation_id));
 diesel::joinable!(portfolio_balance -> currencies (currency_id));
 diesel::joinable!(portfolio_balance -> portfolios (portfolio_id));

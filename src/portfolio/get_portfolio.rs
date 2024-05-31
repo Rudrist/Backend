@@ -21,7 +21,7 @@ struct PortfolioData {
 
 
 #[get("/api/portfolio")]
-pub(crate) async fn get_portfolio_names(
+pub async fn get_portfolio_names(
     mut db_conn: Connection<database::PgDb>,
     _user_auth: UserAuth,
 ) -> (Status, Value) {
