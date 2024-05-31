@@ -20,10 +20,10 @@ pub struct ChangePortfolioInfo<'r> {
 
 #[post("/change_portfolio", data = "<change_portfolio_info>")]
 pub async fn change_portfolio(
-    change_portfolio_info: Form<Strict<ChangePortfolioInfo<'_>>>,
-    mut db_coon: Connection<database::PgDb>,
-    cookies: &CookieJar<'_>,
-) -> Result<Status, (Status, &'static str)> {
+    change_portfolio_info: Json<ChangePortfolioInfo<'_>>,
+    mut db_conn: Connection<database::PgDb>,
+    _user_auth: UserAuth,
+) -> (Status, Value) {
     // ensure the user is logged in
     let _user_id = _user_auth.user_id;
 
