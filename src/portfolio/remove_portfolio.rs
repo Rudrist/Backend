@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 
 use crate::auth::validation::UserAuth;
-use crate::db_lib::schema::{portfolio_balance, portfolios, quotations, positions};
+use crate::db_lib::schema::{orders, portfolio_balance, portfolios, positions, quotations};
 use crate::db_lib::database;
 
 #[derive(Serialize, Deserialize)]
@@ -78,21 +78,32 @@ pub async fn remove_portfolio(
             );
         }
     };
-
+    let delete_order = diesel::delete(
+        orders::table.filter(orders::portfolio_id.eq(portfolio_id)),
+    ).execute(&mut db_conn)
+    .await;
+    match delete_order {
+        Ok(_) => (),
+        Err(_) => {
+            return (
+                Status::InternalServerError,
+                json!({"message": "Error deleting order"}),
+            );
+        }
+    }
     // delete quotation
     for position_id in positions_ids {
-        let deleted_trading_pair = diesel::delete(
+        let deleted_quotation = diesel::delete(
             quotations::table.filter(quotations::position_id.eq(position_id))
         )
         .execute(&mut db_conn)
         .await;
-
-        match deleted_trading_pair {
+        match deleted_quotation {
             Ok(_) => (),
             Err(_) => {
                 return (
                     Status::InternalServerError,
-                    json!({"message": "Error deleting trading pair"}),
+                    json!({"message": "Error deleting quotation"}),
                 );
             }
         }
