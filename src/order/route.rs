@@ -12,12 +12,14 @@ use serde::{Deserialize, Serialize};
 #[get("/api/order?<id>&<st>&<len>")]
 pub async fn get_order(
     id: i32,
-    st: i32,
-    len: i32,
+    st: Option<i32>, 
+    len: Option<i32>,
     // filter: String,
     mut db_conn: Connection<database::PgDb>,
     _user_auth: UserAuth,
 ) -> (Status, Value) {
+    let st = st.unwrap_or(0);
+    let len = len.unwrap_or(10);
     let fetch_order = orders::table
         .inner_join(quotations::table.on(orders::quotation_id.eq(quotations::id)))
         .inner_join(positions::table.on(quotations::position_id.eq(positions::id)))
@@ -60,7 +62,7 @@ pub async fn get_order(
     let len = response_data.len();
     return (
         Status::Ok,
-        json!({"status": "successful", "data":Value::from(response_data).to_string(), "len": len}),
+        json!({"status": "successful", "data":response_data, "len": len}),
     );
 }
 
