@@ -2,24 +2,17 @@ use ::diesel::ExpressionMethods;
 use diesel::query_dsl::methods::{FilterDsl, SelectDsl};
 use diesel::result::Error;
 use rocket::http::Status;
-use rocket::serde::json::Json;
 use rocket::serde::json::{json, Value};
 use rocket_db_pools::diesel::prelude::RunQueryDsl;
 use rocket_db_pools::{diesel, Connection};
-use serde::{Deserialize, Serialize};
 
 use crate::auth::validation::UserAuth;
 use crate::db_lib::database;
 use crate::db_lib::schema::{orders, portfolio_balance, portfolios, positions, quotations};
 
-#[derive(Serialize, Deserialize)]
-pub struct RemovePortfolioInfo<'r> {
-    name: &'r str,
-}
-
-#[delete("/api/portfolio", data = "<remove_portfolio_info>")]
+#[delete("/api/portfolio?<name>")]
 pub async fn remove_portfolio(
-    remove_portfolio_info: Json<RemovePortfolioInfo<'_>>,
+    name: String,
     mut db_conn: Connection<database::PgDb>,
     _user_auth: UserAuth,
 ) -> (Status, Value) {
@@ -28,7 +21,7 @@ pub async fn remove_portfolio(
 
     // get portfolio's id
     let portfolio_id_result: Result<i32, _> = portfolios::table
-        .filter(portfolios::name.eq(remove_portfolio_info.name))
+        .filter(portfolios::name.eq(name))
         .select(portfolios::id)
         .first(&mut db_conn)
         .await;

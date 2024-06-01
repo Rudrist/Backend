@@ -7,6 +7,6 @@ data = {
   "name": "test6",
 }
 
-res = session_requests.delete(config.url + 'portfolio', json=data)
+res = session_requests.delete(config.url + 'portfolio', params=data)
 print(res)
 print(json.loads(res.text))
