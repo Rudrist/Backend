@@ -5,19 +5,13 @@ use rocket::http::Status;
 use rocket::serde::json::{json, Value};
 use rocket_db_pools::diesel::prelude::RunQueryDsl;
 use rocket_db_pools::{diesel, Connection};
-use serde::Serialize;
 
 use crate::auth::validation::UserAuth;
 use crate::db_lib::database;
-use crate::db_lib::schema::{portfolio_balance, portfolios, positions, trading_pairs};
+use crate::db_lib::query::*;
+use crate::db_lib::schema::{portfolio_balance, portfolios};
 
 use std::collections::HashMap;
-
-#[derive(Serialize)]
-struct PortfolioData {
-    portfolio: Vec<(String, i64, i32, Vec<(i32, i32)>)>,
-    len: usize,
-}
 
 #[get("/api/portfolio")]
 pub async fn get_portfolio_names(
@@ -28,21 +22,21 @@ pub async fn get_portfolio_names(
     let _user_id = _user_auth.user_id;
 
     // find all portfolios
-    let portfolio_names_result: Result<Vec<String>, _> = portfolios::table
-        .select(portfolios::name)
+    let portfolio_names_result: Result<Vec<(String, i32)>, _> = portfolios::table
+        .select((portfolios::name, portfolios::id))
         .load(&mut db_conn)
         .await;
 
     match portfolio_names_result {
-        Ok(portfolio_names) => {
+        Ok(portfolios) => {
             // HashMap to store portfolio information
-            let mut portfolio_map: HashMap<String, (i64, i32, Vec<(i32, i32)>)> = HashMap::new();
+            let mut portfolio_map: HashMap<String, (i32, Vec<Value>)> = HashMap::new();
 
             // find each portfolio's balance and positions
-            for name in portfolio_names {
+            for (name, id) in portfolios {
                 use diesel::QueryDsl;
                 // Query balance
-                let balance_result: Result<(i64, i32), _> = SelectDsl::select(
+                let balance_result: Result<Vec<(i64, i32)>, _> = SelectDsl::select(
                     diesel::QueryDsl::filter(portfolios::table, portfolios::name.eq(&name))
                         .inner_join(
                             portfolio_balance::table
@@ -50,28 +44,17 @@ pub async fn get_portfolio_names(
                         ),
                     (portfolio_balance::quantity, portfolio_balance::currency_id),
                 )
-                .first(&mut db_conn)
-                .await;
-
-                // Query positions
-                let position_result: Result<Vec<(i32, i32)>, _> = SelectDsl::select(
-                    diesel::QueryDsl::filter(portfolios::table, portfolios::name.eq(&name))
-                        .inner_join(positions::table.on(portfolios::id.eq(positions::portfolio_id)))
-                        .inner_join(
-                            trading_pairs::table
-                                .on(positions::trading_pair_id.eq(trading_pairs::id)),
-                        ),
-                    (
-                        trading_pairs::base_currency_id,
-                        trading_pairs::quote_currency_id,
-                    ),
-                )
                 .load(&mut db_conn)
                 .await;
 
-                match (balance_result, position_result) {
-                    (Ok((balance, currency_id)), Ok(positions)) => {
-                        portfolio_map.insert(name.clone(), (balance, currency_id, positions));
+                match balance_result {
+                    Ok(positions) => {
+                        let mut re_positions = vec![];
+                        for (a, b) in positions {
+                            let currency = get_currency(&mut db_conn, b).await.unwrap();
+                            re_positions.push(json!({"balance":a.to_string(), "symbol":currency}));
+                        }
+                        portfolio_map.insert(name.clone(), (id, re_positions));
                     }
                     _ => {
                         return (
@@ -84,21 +67,18 @@ pub async fn get_portfolio_names(
 
             // Convert HashMap values to PortfolioData
             let mut portfolio_data = Vec::new();
-            for (name, (balance, currency_id, positions)) in portfolio_map {
-                portfolio_data.push((name, balance, currency_id, positions));
+            for (name, (id, positions)) in portfolio_map {
+                portfolio_data.push(json!({"name":name, "id":id, "positions": positions}));
             }
 
             let num_portfolios = portfolio_data.len();
-            let portfolio_data = PortfolioData {
-                portfolio: portfolio_data,
-                len: num_portfolios,
-            };
 
             return (
                 Status::Ok,
                 json!({
                     "status": "successful",
-                    "data": portfolio_data
+                    "data": portfolio_data,
+                    "len" : num_portfolios,
                 }),
             );
         }

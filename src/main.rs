@@ -15,7 +15,8 @@ use db_lib::{database, RAND};
 mod auth;
 use auth::{login, signup, user_center};
 mod portfolio;
-
+use rocket::http::Method;
+use rocket_cors::{AllowedOrigins, CorsOptions};
 mod order;
 mod risk;
 
@@ -116,8 +117,18 @@ async fn files(file: PathBuf) -> Option<NamedFile> {
 
 #[rocket::main]
 async fn main() {
+    let cors = CorsOptions::default()
+    .allowed_origins(AllowedOrigins::all())
+    .allowed_methods(
+        vec![Method::Get, Method::Post, Method::Patch]
+            .into_iter()
+            .map(From::from)
+            .collect(),
+    )
+    .allow_credentials(true);
     rocket::build()
         .attach(database::PgDb::init())
+        .attach(cors.to_cors().unwrap())
         .manage(RAND {
             random: Arc::new(Mutex::new(rand_chacha::ChaCha8Rng::seed_from_u64(
                 rand_core::OsRng.next_u64(),
