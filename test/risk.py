@@ -4,11 +4,11 @@ import config
 from config import session_requests
 
 data = {
-  "risk_type": "string",
+  "risk_type": "buy",
   "on": True,
   "pnl": 0,
-  "position": "string",
-  "pid": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  "position": "BTC/USDT",
+  "pid": 0
 }
 res = session_requests.post(config.url + 'risk', json=data)
 print(res)

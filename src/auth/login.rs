@@ -80,7 +80,10 @@ pub async fn login(
             };
             cookies.add(Cookie::build(("account_type", account_type_id.to_string())));
 
-            return (Status::Ok, json!({"status":"successful", "account_type": account_type_id}));
+            return (
+                Status::Ok,
+                json!({"status":"successful", "account_type": account_type_id}),
+            );
         }
         Err(session_err) => {
             return (

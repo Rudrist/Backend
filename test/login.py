@@ -12,3 +12,8 @@ res = session_requests.post(config.url + 'auth/login', json=data)
 print(res)
 print(json.loads(res.text))
 print(session_requests.cookies.get_dict())
+
+res = session_requests.get(config.url + 'auth/user')
+print(res)
+print(json.loads(res.text))
+print(session_requests.cookies.get_dict())  

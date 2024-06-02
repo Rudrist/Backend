@@ -6,6 +6,7 @@ use rocket::fs::FileServer;
 use rocket::fs::NamedFile;
 use rocket::http::{CookieJar, Status};
 use rocket::response::content::RawHtml;
+use rocket::serde::json::{json, Value};
 use rocket_db_pools::{Connection, Database};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -20,6 +21,11 @@ use rocket_cors::{AllowedOrigins, CorsOptions};
 mod order;
 mod risk;
 
+use crate::db_lib::schema::accounts;
+use ::diesel::ExpressionMethods;
+use diesel::query_dsl::methods::{FilterDsl, SelectDsl};
+use rocket_db_pools::diesel::prelude::RunQueryDsl;
+
 #[get("/")]
 fn index() -> RawHtml<&'static str> {
     return RawHtml(include_str!("../static/index.html"));
@@ -28,11 +34,24 @@ fn index() -> RawHtml<&'static str> {
 async fn signup_page(
     mut db_conn: Connection<database::PgDb>,
     cookies: &CookieJar<'_>,
-) -> Result<RawHtml<&'static str>, (Status, &'static str)> {
+) -> (Status, Value) {
     if let Some(_) = user_center::get_logged_in_user_id(cookies, &mut db_conn).await {
-        return Err((Status::BadRequest, "Already logged in."));
+        if let Some(user_id) = user_center::get_logged_in_user_id(cookies, &mut db_conn).await {
+            let account_type = accounts::table
+                .select(accounts::account_type)
+                .filter(accounts::id.eq(user_id))
+                .first::<Option<i32>>(&mut db_conn)
+                .await
+                .unwrap()
+                .unwrap();
+
+            return (
+                Status::Ok,
+                json!({"status":"Login", "account_type": account_type}),
+            );
+        }
     }
-    return Ok(RawHtml(include_str!("../static/signup.html")));
+    return (Status::Ok, json!({"status":"Logout"}));
 }
 #[get("/api/auth/login")]
 async fn login_page(
@@ -118,14 +137,20 @@ async fn files(file: PathBuf) -> Option<NamedFile> {
 #[rocket::main]
 async fn main() {
     let cors = CorsOptions::default()
-    .allowed_origins(AllowedOrigins::all())
-    .allowed_methods(
-        vec![Method::Get, Method::Post, Method::Patch, Method::Delete, Method::Put]
+        .allowed_origins(AllowedOrigins::all())
+        .allowed_methods(
+            vec![
+                Method::Get,
+                Method::Post,
+                Method::Patch,
+                Method::Delete,
+                Method::Put,
+            ]
             .into_iter()
             .map(From::from)
             .collect(),
-    )
-    .allow_credentials(true);
+        )
+        .allow_credentials(true);
     rocket::build()
         .attach(database::PgDb::init())
         .attach(cors.to_cors().unwrap())
