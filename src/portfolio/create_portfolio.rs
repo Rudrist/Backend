@@ -42,7 +42,8 @@ pub async fn add_portfolio<'r>(
         Ok(value) => value,
         Err(_) => {
             return (
-                Status::BadRequest,
+                // For front end request.
+                Status::Ok,
                 json!({"status":"error", "message": "Failed to insert into portfolios"}),
             );
         }

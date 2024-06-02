@@ -70,7 +70,7 @@ pub async fn get_portfolio_names(
             for (name, (id, positions)) in portfolio_map {
                 portfolio_data.push(json!({"name":name, "id":id, "positions": positions}));
             }
-
+            portfolio_data.sort_by(|a, b| a["id"].as_i64().cmp(&b["id"].as_i64()));
             let num_portfolios = portfolio_data.len();
 
             return (

@@ -73,13 +73,14 @@ pub async fn login(
                 .first::<Option<i32>>(&mut db_conn)
                 .await
                 .unwrap();
-            if let Some(account_type) = fetch_account_type {
-                cookies.add(Cookie::build(("account_type", account_type.to_string())));
+            let account_type_id = if let Some(account_type_id) = fetch_account_type {
+                account_type_id
             } else {
-                cookies.add(Cookie::build(("account_type", 1.to_string())));
-            }
+                1
+            };
+            cookies.add(Cookie::build(("account_type", account_type_id.to_string())));
 
-            return (Status::Ok, json!({"status":"successful"}));
+            return (Status::Ok, json!({"status":"successful", "account_type": account_type_id}));
         }
         Err(session_err) => {
             return (
