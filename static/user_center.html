@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>User Center</title>
+</head>
+<body>
+    <h1>User Center - Reset Password</h1>
+    
+    <form action="/reset_password" method="post">
+        <label for="current_password">Current Password:</label>
+        <input type="password" id="current_password" name="current_password" required>
+
+        <label for="new_password">New Password:</label>
+        <input type="password" id="new_password" name="new_password" required>
+
+        <button type="submit">Reset Password</button>
+    </form>
+
+    <!-- Logout Button -->
+    <form action="/logout" method="get">
+        <button type="submit">Logout</button>
+    </form>
+</body>
+</html>

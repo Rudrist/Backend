@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Portfolio</title>
+</head>
+<body>
+    <h1>Portfolio</h1>
+    
+    <form action="/add_portfolio" method="post">
+        <label for="name">Portfolio Name:</label>
+        <input type="text" id="name" name="name" required>
+
+        <label for="amount">Amount:</label>
+        <input type="number" id="amount" name="amount" required>
+
+        <label for="currency_id">Currency ID:</label>
+        <input type="number" id="currency_id" name="currency_id" required>
+
+        <button type="submit">Add Portfolio</button>
+    </form>
+
+    <form action="/change_portfolio" method="post">
+        <label for="name">Portfolio Name:</label>
+        <input type="text" id="name" name="name" required>
+
+        <label for="amount">Amount:</label>
+        <input type="number" id="amount" name="amount" required>
+
+        <button type="submit">Change Portfolio</button>
+    </form>
+
+    <form action="/remove_portfolio" method="post">
+        <label for="name">Portfolio Name:</label>
+        <input type="text" id="name" name="name" required>
+
+        <button type="submit">Remove Portfolio</button>
+    </form>
+
+    <button onclick="getPortfolioNames()">Get Portfolio</button>
+    <ul id="portfolioList"></ul>
+
+    <script>
+        async function getPortfolioNames() {
+            const response = await fetch('/get_portfolio_names'); // 发送 GET 请求到后端获取 Portfolio 名称
+            const portfolioNames = await response.json(); // 解析响应的 JSON 数据
+
+            const portfolioList = document.getElementById('portfolioList'); // 获取列表元素
+
+            // 清空现有的列表项
+            portfolioList.innerHTML = '';
+
+            // 遍历并添加 Portfolio 名称到列表中
+            portfolioNames.forEach(name => {
+                const listItem = document.createElement('li'); // 创建列表项元素
+                listItem.textContent = name; // 设置列表项的文本内容
+                portfolioList.appendChild(listItem); // 将列表项添加到列表中
+            });
+        }
+    </script>
+</body>
+</html>

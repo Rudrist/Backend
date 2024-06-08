@@ -1,0 +1,35 @@
+version: '3.8'
+services:
+  backend:
+    build:
+      context: .
+      args:
+        - DATABASE_URL=postgres://rudrist_admin:123456@db:5432/rudristdb
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      ROCKET_DATABASES: "{postgres_db={url=\"postgres://rudrist_admin:123456@db:5432/rudristdb\"}}"
+      ROCKET_PORT: 8080
+    networks:
+      - rudrist-network
+  db:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: rudrist_admin
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: rudristdb
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - rudrist-network
+
+networks:
+  rudrist-network:
+    driver: bridge
+volumes:
+  postgres_data:
