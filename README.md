@@ -27,12 +27,20 @@ cargo install diesel_cli --no-default-features --features postgres
 
 ## How to Use
 
-1. Modify the content of `.env` and `Rocket.toml` file.
-2. `echo DATABASE_URL=postgres://username:password@localhost/diesel_demo > .env`
+1. `cp .env.example .env` and fill in the values (`.env` is git-ignored; never commit it).
+2. `set -a && . ./.env && set +a` to export the variables to your shell.
 3. `diesel migration run`
 4. `cargo run`
 
+Secrets are read from environment variables, not from `Rocket.toml`:
+
+* `ROCKET_DATABASES`: database connection for Rocket.
+* `ROCKET_SECRET_KEY`: required in release builds; generate one with `openssl rand -base64 32`.
+* `DATABASE_URL`: used by the diesel CLI.
+
 ## Run with docker
+
+Create `.env` from `.env.example` first; docker compose reads `POSTGRES_PASSWORD` and `ROCKET_SECRET_KEY` from it.
 
 ``` shell
 docker-compose up -d
